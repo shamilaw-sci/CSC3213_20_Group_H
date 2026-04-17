@@ -45,6 +45,32 @@ export default function LoginPage() {
     }
   };
 
+  // Anonymous login 
+  const handleAnonymousLogin = async () => {
+  setError("");
+  setLoading(true);
+
+  try {
+    const res = await fetch("http://localhost:5000/api/auth/register/anonymous", {
+      method: "POST",
+    });
+
+    const data = await res.json();
+
+    // store anonymous session
+    localStorage.setItem("user", JSON.stringify(data));
+    localStorage.setItem("role", data.role);
+
+    // redirect
+    router.push("/");
+
+  } catch (err: any) {
+    setError("Anonymous login failed");
+  } finally {
+    setLoading(false);
+  }
+};
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950 px-4 select-none">
       {/* Background decoration elements */}
@@ -139,6 +165,16 @@ export default function LoginPage() {
               ) : (
                 "Sign in"
               )}
+            </button>
+
+            {/* ANONYMOUS BUTTON */}
+            <button
+              type="button"
+              onClick={handleAnonymousLogin}
+              disabled={loading}
+              className="w-full mt-3 py-3 px-4 rounded-xl border border-violet-500 text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-zinc-800 transition-all"
+            >
+              Continue as Anonymous
             </button>
           </form>
 
