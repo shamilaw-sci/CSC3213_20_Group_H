@@ -12,6 +12,9 @@ app.get('/', (req, res) => {
     res.send('Mind-Ease API is running...');
 });
 
+const authRoutes = require('./routes/authRoutes');
+app.use('/api/auth', authRoutes);
+
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
