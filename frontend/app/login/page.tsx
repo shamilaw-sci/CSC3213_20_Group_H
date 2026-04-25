@@ -144,7 +144,7 @@ export default function LoginPage() {
 
           <div className="mt-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
             Don't have an account?{" "}
-            <a href="#" className="font-semibold text-violet-600 dark:text-violet-400 hover:text-violet-500 transition-colors">
+            <a href="/register" className="font-semibold text-violet-600 dark:text-violet-400 hover:text-violet-500 transition-colors">
               Sign up
             </a>
           </div>
