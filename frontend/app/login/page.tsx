@@ -37,7 +37,7 @@ export default function LoginPage() {
 
       // Successfully logged in
       // Redirect to a dashboard or home page
-      router.push("/");
+      router.push("/dashboard");
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -58,11 +58,12 @@ export default function LoginPage() {
     const data = await res.json();
 
     // store anonymous session
-    localStorage.setItem("user", JSON.stringify(data));
+    localStorage.setItem("token", data.token);
     localStorage.setItem("role", data.role);
+    localStorage.setItem("userId", data.anonymousId);
 
     // redirect
-    router.push("/");
+    router.push("/dashboard");
 
   } catch (err: any) {
     setError("Anonymous login failed");
