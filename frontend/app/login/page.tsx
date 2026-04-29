@@ -2,10 +2,50 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import api from "../lib/api";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState(""); // ✅ Added: inline error state
+  const router = useRouter();
+
+  const handleLogin = async () => {
+    setError(""); // clear previous error
+    try {
+      const res = await api.post("/auth/login", {
+        email,
+        password,
+      });
+
+      localStorage.setItem("token", res.data.token);
+      router.push("/dashboard");
+    } catch (err) {
+      setError("Invalid email or password. Please try again."); // ✅ Fixed: no alert()
+    }
+  };
+
+  return (
+    <div>
+      <h1>Login</h1>
+
+      <input
+        placeholder="Email"
+        onChange={(e) => setEmail(e.target.value)}
+      />
+      <input
+        type="password" // ✅ Fixed: password is now masked
+        placeholder="Password"
+        onChange={(e) => setPassword(e.target.value)}
+      />
+
+      {/* ✅ Added: inline error message */}
+      {error && <p style={{ color: "red" }}>{error}</p>}
+
+      <button onClick={handleLogin}>Login</button>
+    </div>
+  );
+}
   
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -51,6 +91,32 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
+  // Anonymous login 
+  const handleAnonymousLogin = async () => {
+  setError("");
+  setLoading(true);
+
+  try {
+    const res = await fetch("http://localhost:5000/api/auth/register/anonymous", {
+      method: "POST",
+    });
+
+    const data = await res.json();
+
+    // store anonymous session
+    localStorage.setItem("user", JSON.stringify(data));
+    localStorage.setItem("role", data.role);
+
+    // redirect
+    router.push("/");
+
+  } catch (err: any) {
+    setError("Anonymous login failed");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950 px-4 select-none relative overflow-hidden">
@@ -124,6 +190,16 @@ export default function LoginPage() {
                 }`}
             >
               {loading ? "Verifying..." : "Sign in"}
+            </button>
+
+            {/* ANONYMOUS BUTTON */}
+            <button
+              type="button"
+              onClick={handleAnonymousLogin}
+              disabled={loading}
+              className="w-full mt-3 py-3 px-4 rounded-xl border border-violet-500 text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-zinc-800 transition-all"
+            >
+              Continue as Anonymous
             </button>
           </form>
 
