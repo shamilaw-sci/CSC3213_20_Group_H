@@ -6,7 +6,7 @@ const router = express.Router();
 router.get("/", authMiddleware, (req, res) => {
   res.json({
     message: "Protected dashboard data",
-    user: req.user
+    user: req.user,
   });
 });
 

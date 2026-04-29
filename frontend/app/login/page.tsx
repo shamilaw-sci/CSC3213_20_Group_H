@@ -7,9 +7,11 @@ import api from "../lib/api";
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState(""); // ✅ Added: inline error state
   const router = useRouter();
 
   const handleLogin = async () => {
+    setError(""); // clear previous error
     try {
       const res = await api.post("/auth/login", {
         email,
@@ -17,10 +19,9 @@ export default function LoginPage() {
       });
 
       localStorage.setItem("token", res.data.token);
-
       router.push("/dashboard");
     } catch (err) {
-      alert("Login failed");
+      setError("Invalid email or password. Please try again."); // ✅ Fixed: no alert()
     }
   };
 
@@ -28,8 +29,18 @@ export default function LoginPage() {
     <div>
       <h1>Login</h1>
 
-      <input placeholder="Email" onChange={(e) => setEmail(e.target.value)} />
-      <input placeholder="Password" onChange={(e) => setPassword(e.target.value)} />
+      <input
+        placeholder="Email"
+        onChange={(e) => setEmail(e.target.value)}
+      />
+      <input
+        type="password" // ✅ Fixed: password is now masked
+        placeholder="Password"
+        onChange={(e) => setPassword(e.target.value)}
+      />
+
+      {/* ✅ Added: inline error message */}
+      {error && <p style={{ color: "red" }}>{error}</p>}
 
       <button onClick={handleLogin}>Login</button>
     </div>

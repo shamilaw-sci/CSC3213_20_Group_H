@@ -20,7 +20,7 @@ export default function Dashboard() {
         setData(res.data.message);
       } catch (err) {
         localStorage.removeItem("token");
-        router.push("/login"); // redirect unauthorized
+        router.push("/login");
       }
     };
 
@@ -31,7 +31,6 @@ export default function Dashboard() {
     <div>
       <h1>Dashboard</h1>
       <p>{data}</p>
-
       <button onClick={logout}>Logout</button>
     </div>
   );

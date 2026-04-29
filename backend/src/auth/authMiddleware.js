@@ -1,6 +1,5 @@
 import jwt from "jsonwebtoken";
-
-const SECRET = process.env.JWT_SECRET || "mysecretkey";
+import { SECRET } from "../config.js"; // ✅ Fixed: uses shared config, no hardcoded fallback
 
 export const authMiddleware = (req, res, next) => {
   const authHeader = req.headers.authorization;
