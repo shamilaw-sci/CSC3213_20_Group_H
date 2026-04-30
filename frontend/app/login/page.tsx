@@ -57,6 +57,8 @@ export default function LoginPage() {
 
     const data = await res.json();
 
+    console.log("Anonymous response:", data);
+
     // store anonymous session
     localStorage.setItem("token", data.token);
     localStorage.setItem("role", data.role);
@@ -66,6 +68,7 @@ export default function LoginPage() {
     router.push("/dashboard");
 
   } catch (err: any) {
+    console.log("Anonymous error:", err);
     setError("Anonymous login failed");
   } finally {
     setLoading(false);
