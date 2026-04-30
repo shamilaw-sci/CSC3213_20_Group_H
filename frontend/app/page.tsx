@@ -2,7 +2,6 @@ import Link from "next/link";
 
 export default function Home() {
   return (
-    <div className="font-bold text-5xl ">Care Bridge</div>
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 gap-6">
       <h1 className="text-3xl font-bold text-gray-800">CareBridge</h1>
       <p className="text-gray-500">Mental health support for university students</p>
