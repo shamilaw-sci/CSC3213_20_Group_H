@@ -2,6 +2,54 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const db = require('../config/db');
 
+exports.register = async (req, res) => {
+    const { name, email, password } = req.body;
+
+    if (!name || !email || !password) {
+        return res.status(400).json({ message: 'Name, email, and password are required.' });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        return res.status(400).json({ message: 'Please provide a valid email address.' });
+    }
+
+    if (password.length < 8) {
+        return res.status(400).json({ message: 'Password must be at least 8 characters long.' });
+    }
+
+    try {
+        const [existing] = await db.query('SELECT id FROM users WHERE email = ?', [email]);
+        if (existing.length > 0) {
+            return res.status(409).json({ message: 'An account with this email already exists.' });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const [result] = await db.query(
+            'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
+            [name, email, hashedPassword, 'Student']
+        );
+
+        const secretKey = process.env.JWT_SECRET || 'fallback_secret_key';
+        const token = jwt.sign(
+            { userId: result.insertId, role: 'Student' },
+            secretKey,
+            { expiresIn: '1h' }
+        );
+
+        return res.status(201).json({
+            message: 'Registration successful.',
+            token,
+            role: 'Student'
+        });
+
+    } catch (error) {
+        console.error('Error during registration:', error);
+        return res.status(500).json({ message: 'Internal server error.' });
+    }
+};
+
 exports.login = async (req, res) => {
     const { email, password } = req.body;
 

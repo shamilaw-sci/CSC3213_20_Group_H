@@ -25,11 +25,15 @@ async function seed() {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
         id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255),
         email VARCHAR(255) NOT NULL UNIQUE,
         password VARCHAR(255) NOT NULL,
         role VARCHAR(50) DEFAULT 'Student'
       )
     `);
+
+    // Add name column to existing tables that pre-date this schema change
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS name VARCHAR(255) AFTER id`);
 
     const email = 'test@example.com';
     const plainPassword = 'password123';
