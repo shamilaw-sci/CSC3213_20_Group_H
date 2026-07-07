@@ -20,8 +20,9 @@ export async function anonymousLogin() {
 }
 
 export function logout() {
-    localStorage.clear();
-    window.location.href = "/login";
+    if (typeof window !== "undefined") {
+        localStorage.clear();
+    }
 }
 
 export function getToken() {

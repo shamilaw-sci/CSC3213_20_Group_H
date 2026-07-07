@@ -17,6 +17,7 @@ export default function Dashboard() {
 
     if (!token) {
       router.replace("/login");
+      setIsCheckingAuth(false);
       return;
     }
 
@@ -24,6 +25,11 @@ export default function Dashboard() {
     setRole(localStorage.getItem("role"));
     setIsCheckingAuth(false);
   }, [router]);
+
+  const handleLogout = () => {
+    logout();
+    router.replace("/login");
+  };
 
   if (isCheckingAuth) {
     return (
@@ -40,7 +46,7 @@ export default function Dashboard() {
       <p>User ID: {userId}</p>
       <p>Role: {role}</p>
 
-      <button onClick={logout}>Logout</button>
+      <button onClick={handleLogout}>Logout</button>
     </div>
   );
 }
