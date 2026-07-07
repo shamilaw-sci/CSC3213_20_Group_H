@@ -1,37 +1,35 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { logout } from "@/lib/auth";
 import { useRouter } from "next/navigation";
-import api from "../lib/api";
 
 export default function Dashboard() {
-  const [data, setData] = useState("");
-  const router = useRouter();
+    const router = useRouter();
+    const [userId, setUserId] = useState<string | null>(null);
+    const [role, setRole] = useState<string | null>(null);
 
-  const logout = () => {
-    localStorage.removeItem("token");
-    router.push("/login");
-  };
+    useEffect(() => {
+        const token = localStorage.getItem("token");
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await api.get("/dashboard");
-        setData(res.data.message);
-      } catch (err) {
-        localStorage.removeItem("token");
-        router.push("/login");
-      }
-    };
+        if (!token) {
+            router.push("/login");
+        }
 
-    fetchData();
-  }, []);
+        setUserId(localStorage.getItem("userId"));
+        setRole(localStorage.getItem("role"));
+    }, []);
 
-  return (
-    <div>
-      <h1>Dashboard</h1>
-      <p>{data}</p>
-      <button onClick={logout}>Logout</button>
-    </div>
-  );
+    return (
+        <div style={{ padding: "50px" }}>
+            <h1>Dashboard</h1>
+
+            <p>User ID: {userId}</p>
+            <p>Role: {role}</p>
+
+            <button onClick={logout}>
+                Logout
+            </button>
+        </div>
+    );
 }

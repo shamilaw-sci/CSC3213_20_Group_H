@@ -36,15 +36,9 @@ export default function LoginPage() {
       localStorage.setItem("token", data.token);
       localStorage.setItem("role", data.role);
 
-      // --- REDIRECT LOGIC ---
-      // Redirect users based on their role
-      if (data.role === "admin") {
-        router.push("/admin/dashboard");
-      } else if (data.role === "professional") {
-        router.push("/pro/dashboard");
-      } else {
-        router.push("/dashboard");
-      }
+      // Successfully logged in
+      // Redirect to a dashboard or home page
+      router.push("/dashboard");
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -67,18 +61,23 @@ export default function LoginPage() {
 
       const data = await res.json();
 
-      // store anonymous session
-      localStorage.setItem("user", JSON.stringify(data));
-      localStorage.setItem("role", data.role);
+    console.log("Anonymous response:", data);
 
-      // redirect
-      router.push("/");
-    } catch (err: any) {
-      setError("Anonymous login failed");
-    } finally {
-      setLoading(false);
-    }
-  };
+    // store anonymous session
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("role", data.role);
+    localStorage.setItem("userId", data.anonymousId);
+
+    // redirect
+    router.push("/dashboard");
+
+  } catch (err: any) {
+    console.log("Anonymous error:", err);
+    setError("Anonymous login failed");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950 px-4 select-none relative overflow-hidden">
