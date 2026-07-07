@@ -37,8 +37,7 @@ export default function LoginPage() {
       localStorage.setItem("role", data.role);
 
       // Successfully logged in
-      // Redirect to a dashboard or home page
-      router.push("/dashboard");
+      router.replace("/dashboard");
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -61,23 +60,22 @@ export default function LoginPage() {
 
       const data = await res.json();
 
-    console.log("Anonymous response:", data);
+      console.log("Anonymous response:", data);
 
-    // store anonymous session
-    localStorage.setItem("token", data.token);
-    localStorage.setItem("role", data.role);
-    localStorage.setItem("userId", data.anonymousId);
+      // store anonymous session
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("role", data.role);
+      localStorage.setItem("userId", data.anonymousId);
 
-    // redirect
-    router.push("/dashboard");
-
-  } catch (err: any) {
-    console.log("Anonymous error:", err);
-    setError("Anonymous login failed");
-  } finally {
-    setLoading(false);
-  }
-};
+      // redirect
+      router.replace("/dashboard");
+    } catch (err: any) {
+      console.log("Anonymous error:", err);
+      setError("Anonymous login failed");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950 px-4 select-none relative overflow-hidden">
@@ -90,7 +88,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl rounded-3xl shadow-xl border border-white/20 dark:border-white/10 overflow-hidden relative z-10 transition-all duration-300 hover:shadow-2xl">
         <div className="p-8">
           <div className="text-center mb-10">
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-violet-600 to-cyan-500 bg-clip-text text-transparent mb-2 inline-block">
+            <h1 className="text-3xl font-bold bg-linear-to-r from-violet-600 to-cyan-500 bg-clip-text text-transparent mb-2 inline-block">
               CareBridge
             </h1>
             <p className="text-zinc-500 dark:text-zinc-400 text-sm">

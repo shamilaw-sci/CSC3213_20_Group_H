@@ -5,31 +5,42 @@ import { logout } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 
 export default function Dashboard() {
-    const router = useRouter();
-    const [userId, setUserId] = useState<string | null>(null);
-    const [role, setRole] = useState<string | null>(null);
+  const router = useRouter();
+  const [userId, setUserId] = useState<string | null>(null);
+  const [role, setRole] = useState<string | null>(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
-    useEffect(() => {
-        const token = localStorage.getItem("token");
+  useEffect(() => {
+    if (typeof window === "undefined") return;
 
-        if (!token) {
-            router.push("/login");
-        }
+    const token = localStorage.getItem("token");
 
-        setUserId(localStorage.getItem("userId"));
-        setRole(localStorage.getItem("role"));
-    }, []);
+    if (!token) {
+      router.replace("/login");
+      return;
+    }
 
+    setUserId(localStorage.getItem("userId"));
+    setRole(localStorage.getItem("role"));
+    setIsCheckingAuth(false);
+  }, [router]);
+
+  if (isCheckingAuth) {
     return (
-        <div style={{ padding: "50px" }}>
-            <h1>Dashboard</h1>
-
-            <p>User ID: {userId}</p>
-            <p>Role: {role}</p>
-
-            <button onClick={logout}>
-                Logout
-            </button>
-        </div>
+      <div style={{ padding: "50px" }}>
+        <h1>Loading dashboard...</h1>
+      </div>
     );
+  }
+
+  return (
+    <div style={{ padding: "50px" }}>
+      <h1>Dashboard</h1>
+
+      <p>User ID: {userId}</p>
+      <p>Role: {role}</p>
+
+      <button onClick={logout}>Logout</button>
+    </div>
+  );
 }

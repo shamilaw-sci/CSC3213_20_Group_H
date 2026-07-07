@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 export default function RegisterPage() {
@@ -47,7 +48,7 @@ export default function RegisterPage() {
       localStorage.setItem("token", data.token);
       localStorage.setItem("role", data.role);
 
-      router.push("/");
+      router.replace("/dashboard");
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -65,7 +66,7 @@ export default function RegisterPage() {
       <div className="w-full max-w-md bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl rounded-3xl shadow-xl border border-white/20 dark:border-white/10 overflow-hidden relative z-10 transition-all duration-300 hover:shadow-2xl hover:border-white/30">
         <div className="p-8">
           <div className="text-center mb-10">
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-violet-600 to-cyan-500 bg-clip-text text-transparent mb-2 inline-block">
+            <h1 className="text-3xl font-bold bg-linear-to-r from-violet-600 to-cyan-500 bg-clip-text text-transparent mb-2 inline-block">
               Create Account
             </h1>
             <p className="text-zinc-500 dark:text-zinc-400 text-sm">
@@ -213,12 +214,12 @@ export default function RegisterPage() {
 
           <div className="mt-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
             Already have an account?{" "}
-            <a
+            <Link
               href="/login"
               className="font-semibold text-violet-600 dark:text-violet-400 hover:text-violet-500 transition-colors"
             >
               Sign in
-            </a>
+            </Link>
           </div>
         </div>
       </div>
