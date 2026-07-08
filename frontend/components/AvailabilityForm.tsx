@@ -1,8 +1,11 @@
+"use client";
+
 import { useState } from "react";
-import axios from "axios";
+import api from "@/services/api";
+import { Availability } from "@/types/Availability";
 
 const AvailabilityForm = () => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<Availability>({
     professional_id: 1,
     available_date: "",
     start_time: "",
@@ -11,10 +14,7 @@ const AvailabilityForm = () => {
 
   const handleSubmit = async () => {
     try {
-      await axios.post(
-        "http://localhost:5000/api/availability",
-        formData
-      );
+      await api.post("/availability", formData);
 
       alert("Availability Added Successfully");
 
@@ -25,7 +25,7 @@ const AvailabilityForm = () => {
         end_time: "",
       });
     } catch (error) {
-      console.error(error);
+      console.error("Error:", error);
       alert("Failed to add availability");
     }
   };
@@ -45,7 +45,8 @@ const AvailabilityForm = () => {
         }
       />
 
-      <br /><br />
+      <br />
+      <br />
 
       <input
         type="time"
@@ -58,7 +59,8 @@ const AvailabilityForm = () => {
         }
       />
 
-      <br /><br />
+      <br />
+      <br />
 
       <input
         type="time"
@@ -71,7 +73,8 @@ const AvailabilityForm = () => {
         }
       />
 
-      <br /><br />
+      <br />
+      <br />
 
       <button onClick={handleSubmit}>
         Save Availability

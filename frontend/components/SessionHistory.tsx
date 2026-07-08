@@ -1,32 +1,32 @@
-import { useEffect, useState } from "react";
-import axios from "axios";
+"use client";
 
-interface Session {
-  id: number;
-  appointment_date: string;
-  status: string;
-  start_time: string;
-  end_time: string;
-}
+import { useEffect, useState } from "react";
+import api from "@/services/api";
+import { Session } from "@/types/Session";
 
 const SessionHistory = () => {
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const fetchSessions = async () => {
     try {
-      const response = await axios.get(
-        "http://localhost:5000/api/sessions/2"
-      );
+      const response = await api.get("/sessions/2");
 
       setSessions(response.data);
     } catch (error) {
-      console.error(error);
+      console.error("Failed to fetch sessions:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchSessions();
   }, []);
+
+  if (loading) {
+    return <p>Loading sessions...</p>;
+  }
 
   return (
     <div>
@@ -39,15 +39,22 @@ const SessionHistory = () => {
           <div
             key={session.id}
             style={{
-              border: "1px solid gray",
-              padding: "10px",
+              border: "1px solid #ccc",
+              padding: "12px",
               marginBottom: "10px",
+              borderRadius: "8px",
             }}
           >
             <p>
-              <strong>Date:</strong>{" "}
-              {session.appointment_date}
+              <strong>Session ID:</strong> {session.id}
             </p>
+
+            {session.appointment_date && (
+              <p>
+                <strong>Date:</strong>{" "}
+                {session.appointment_date}
+              </p>
+            )}
 
             <p>
               <strong>Status:</strong>{" "}
@@ -63,6 +70,13 @@ const SessionHistory = () => {
               <strong>End Time:</strong>{" "}
               {session.end_time}
             </p>
+
+            {session.notes && (
+              <p>
+                <strong>Notes:</strong>{" "}
+                {session.notes}
+              </p>
+            )}
           </div>
         ))
       )}
