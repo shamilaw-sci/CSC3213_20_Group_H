@@ -15,6 +15,29 @@ app.post('/', (req, res) => {
 const authRoutes = require('./routes/authRoutes');
 app.use('/api/auth', authRoutes);
 
+app.post('/api/logs', (req, res) => {
+  const { message, severity = 'info', metadata = {} } = req.body || {};
+
+  const normalizedSeverity = String(severity).toLowerCase();
+  const flaggedSeverity = ['critical', 'high', 'error'].includes(normalizedSeverity)
+    ? normalizedSeverity
+    : 'info';
+
+  console.log('[request-log]', JSON.stringify({
+    message,
+    severity: flaggedSeverity,
+    metadata,
+    timestamp: new Date().toISOString(),
+  }));
+
+  res.status(201).json({
+    success: true,
+    message: 'Request logged successfully',
+    severity: flaggedSeverity,
+  });
+});
+
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
+
