@@ -7,9 +7,11 @@ export default function AnonymousPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const user = localStorage.getItem("user");
-    if (!user) {
-      router.push("/login");
+    if (typeof window === "undefined") return;
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.replace("/login");
     }
   }, [router]);
 
@@ -20,7 +22,8 @@ export default function AnonymousPage() {
           Anonymous Session
         </h1>
         <p className="text-zinc-500 dark:text-zinc-400">
-          You are browsing anonymously. Your activity is not linked to any account.
+          You are browsing anonymously. Your activity is not linked to any
+          account.
         </p>
         <button
           onClick={() => router.push("/")}
