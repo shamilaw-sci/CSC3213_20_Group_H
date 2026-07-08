@@ -88,7 +88,10 @@ export default function LoginPage() {
       <div className="w-full max-w-md bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl rounded-3xl shadow-xl border border-white/20 dark:border-white/10 overflow-hidden relative z-10 transition-all duration-300 hover:shadow-2xl">
         <div className="p-8">
           <div className="text-center mb-10">
-            <h1 className="text-3xl font-bold bg-linear-to-r from-violet-600 to-cyan-500 bg-clip-text text-transparent mb-2 inline-block">
+            <h1
+              className="text-3xl font-bold bg-gradient-to-r from-violet-600 to-cyan-500 bg-clip-text text-transparent mb-2 inline-block cursor-pointer"
+              onClick={() => router.push("/")}
+            >
               CareBridge
             </h1>
             <p className="text-zinc-500 dark:text-zinc-400 text-sm">
@@ -142,7 +145,7 @@ export default function LoginPage() {
             </div>
 
             {error && (
-              <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl flex items-start gap-3 animate-in fade-in slide-in-from-top-1">
+              <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl flex items-start gap-3 transition-all duration-200">
                 <p className="text-sm text-red-600 dark:text-red-400">
                   {error}
                 </p>
