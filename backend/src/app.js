@@ -37,6 +37,21 @@ app.post('/api/logs', (req, res) => {
   });
 });
 
+app.post('/api/help', (req, res) => {
+  const { message = 'Emergency help requested', metadata = {} } = req.body || {};
+
+  console.log('[help-request]', JSON.stringify({
+    message,
+    metadata,
+    timestamp: new Date().toISOString(),
+  }));
+
+  res.status(200).json({
+    success: true,
+    message: 'Help request received',
+  });
+});
+
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
