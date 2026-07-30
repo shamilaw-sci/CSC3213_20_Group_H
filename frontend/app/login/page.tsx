@@ -34,7 +34,14 @@ export default function LoginPage() {
       // --- CRITICAL STEP FOR MEMBER 401 ---
       // Store the JWT token & user info for the rest of the team
       localStorage.setItem("token", data.token);
-      localStorage.setItem("role", data.role);
+
+      localStorage.setItem(
+        "user",
+        JSON.stringify({
+          id: data.userId,
+          role: data.role
+        })
+      );
 
       // Successfully logged in
       router.replace("/dashboard");

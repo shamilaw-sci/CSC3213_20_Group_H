@@ -46,8 +46,11 @@ export default function RegisterPage() {
       }
 
       localStorage.setItem("token", data.token);
-      localStorage.setItem("role", data.role);
 
+      localStorage.setItem(
+        "user",
+        JSON.stringify(data.user)
+      );
       router.replace("/dashboard");
     } catch (err: any) {
       setError(err.message);
