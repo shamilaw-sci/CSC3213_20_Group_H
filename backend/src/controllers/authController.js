@@ -41,7 +41,10 @@ exports.register = async (req, res) => {
         return res.status(201).json({
             message: 'Registration successful.',
             token,
-            role: 'Student'
+            user: {
+                id: result.insertId,
+                role: 'Student'
+            }
         });
 
     } catch (error) {
@@ -90,11 +93,62 @@ exports.login = async (req, res) => {
         return res.status(200).json({
             message: 'Login successful.',
             token,
+            userId: user.userId,
             role: user.role
         });
 
     } catch (error) {
         console.error('Error during login:', error);
         return res.status(500).json({ message: 'Internal server error.' });
+    }
+};
+exports.anonymousLogin = async (req, res) => {
+    try {
+        const anonymousId = "anon_" + Math.random().toString(36).substring(2, 10);
+
+        const [result] = await db.query(
+            `INSERT INTO users 
+            (name, email, password, role, anonymousId, isAnonymous)
+            VALUES (?, ?, ?, ?, ?, ?)`,
+            [
+                "Anonymous User",
+                null,
+                null,
+                "anonymous",
+                anonymousId,
+                true
+            ]
+        );
+
+        const secretKey = process.env.JWT_SECRET || 'fallback_secret_key';
+
+        const token = jwt.sign(
+            {
+                userId: result.insertId,
+                role: "anonymous",
+                isAnonymous: true
+            },
+            secretKey,
+            {
+                expiresIn: "7d"
+            }
+        );
+
+        res.status(201).json({
+            message: "Anonymous login successful",
+            token,
+            user: {
+                id: result.insertId,
+                anonymousId,
+                role: "anonymous",
+                isAnonymous: true
+            }
+        });
+
+    } catch(error) {
+        console.error("Anonymous login error:", error);
+        res.status(500).json({
+            message: error.message
+        });
     }
 };

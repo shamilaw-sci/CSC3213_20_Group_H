@@ -1,4 +1,40 @@
+"use client";
+import { useRouter } from "next/navigation";
+
+
 export default function HomePage() {
+  const router = useRouter();
+
+  const handleAnonymousLogin = async () => {
+  try {
+    const response = await fetch(
+      "http://localhost:5000/api/auth/register/anonymous",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({}),
+      }
+    );
+
+    const data = await response.json();
+
+    if (response.ok) {
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+
+      router.push("/dashboard");
+    } else {
+      alert(data.message);
+    }
+
+  } catch (error) {
+    console.error("Anonymous login error:", error);
+    alert("Server error");
+  }
+};
+
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(191,219,254,0.35),transparent_60%)] px-6 py-16 text-slate-800 sm:px-8 lg:px-12">
       <div className="mx-auto flex max-w-6xl flex-col gap-10">
@@ -31,6 +67,12 @@ export default function HomePage() {
               >
                 Create account
               </a>
+              <button
+                  onClick={handleAnonymousLogin}
+                  className="rounded-full bg-emerald-600 px-6 py-3 text-center text-sm font-medium text-white transition hover:bg-emerald-700"
+                >
+                  Continue as Anonymous
+                </button>
             </div>
           </div>
         </section>
