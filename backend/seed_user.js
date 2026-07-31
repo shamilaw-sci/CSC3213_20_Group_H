@@ -28,7 +28,9 @@ async function seed() {
         name VARCHAR(255),
         email VARCHAR(255) NOT NULL UNIQUE,
         password VARCHAR(255) NOT NULL,
-        role VARCHAR(50) DEFAULT 'Student'
+        role VARCHAR(50) DEFAULT 'Student',
+        anonymousId VARCHAR(100),
+        isAnonymous BOOLEAN DEFAULT FALSE
       )
     `);
 
