@@ -1,25 +1,36 @@
-import express from "express";
-import cors from "cors";
-import dotenv from "dotenv";
-import authRoutes from "./routes/auth.js";
-import dashboardRoutes from "./routes/dashboard.js";
+const http = require("http");
+const app = require("./app");
+const { Server } = require("socket.io");
 
-dotenv.config();
-
-const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ✅ Fixed: CORS restricted to frontend origin (not wide open)
-app.use(cors({ origin: "http://localhost:3000" }));
-app.use(express.json());
+const server = http.createServer(app);
 
-app.get("/", (req, res) => {
-  res.send("API is running...");
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:3000",
+    methods: ["GET", "POST"],
+  },
 });
 
-app.use("/api/auth", authRoutes);
-app.use("/api/dashboard", dashboardRoutes);
+io.on("connection", (socket) => {
+  console.log("User Connected:", socket.id);
 
-app.listen(PORT, () => {
-  console.log(`Backend running on port ${PORT}`);
+  socket.on("joinRoom", (roomId) => {
+    socket.join(roomId);
+  });
+
+  socket.on("callUser", (data) => {
+    socket.to(data.roomId).emit("incomingCall", {
+      caller: data.caller,
+    });
+  });
+
+  socket.on("endCall", (data) => {
+    socket.to(data.roomId).emit("callEnded");
+  });
+});
+
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
