@@ -1,44 +1,42 @@
 "use client";
 import { useRouter } from "next/navigation";
 
-
 export default function HomePage() {
   const router = useRouter();
 
   const handleAnonymousLogin = async () => {
-  try {
-    const response = await fetch(
-      "http://localhost:5000/api/auth/register/anonymous",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+    try {
+      const response = await fetch(
+        "http://localhost:5000/api/auth/register/anonymous",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({}),
         },
-        body: JSON.stringify({}),
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
+
+        router.push("/dashboard");
+      } else {
+        alert(data.message);
       }
-    );
-
-    const data = await response.json();
-
-    if (response.ok) {
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
-
-      router.push("/dashboard");
-    } else {
-      alert(data.message);
+    } catch (error) {
+      console.error("Anonymous login error:", error);
+      alert("Server error");
     }
-
-  } catch (error) {
-    console.error("Anonymous login error:", error);
-    alert("Server error");
-  }
-};
+  };
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(191,219,254,0.35),transparent_60%)] px-6 py-16 text-slate-800 sm:px-8 lg:px-12">
       <div className="mx-auto flex max-w-6xl flex-col gap-10">
-        <section className="rounded-4xl border border-slate-200 bg-white/80 px-8 py-12 shadow-sm backdrop-blur sm:px-12 lg:px-16">
+        <section className="rounded-[2.5rem] border border-slate-200 bg-white/80 px-8 py-12 shadow-sm backdrop-blur sm:px-12 lg:px-16">
           <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-2xl">
               <p className="mb-3 text-sm font-medium uppercase tracking-[0.3em] text-sky-600">
@@ -54,25 +52,26 @@ export default function HomePage() {
               </p>
             </div>
 
+            {/* Modernized Buttons */}
             <div className="flex flex-col gap-3 sm:flex-row">
               <a
                 href="/login"
-                className="rounded-full bg-sky-600 px-6 py-3 text-center text-sm font-medium text-white transition hover:bg-sky-700"
+                className="rounded-lg bg-sky-600 px-5 py-2.5 text-sm font-medium text-white shadow-md transition hover:bg-sky-700 hover:shadow-lg"
               >
                 Sign in
               </a>
               <a
                 href="/register"
-                className="rounded-full border border-slate-300 px-6 py-3 text-center text-sm font-medium text-slate-700 transition hover:border-sky-400 hover:text-sky-700"
+                className="rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:border-sky-400 hover:text-sky-700 hover:shadow-md"
               >
                 Create account
               </a>
               <button
-                  onClick={handleAnonymousLogin}
-                  className="rounded-full bg-emerald-600 px-6 py-3 text-center text-sm font-medium text-white transition hover:bg-emerald-700"
-                >
-                  Continue as Anonymous
-                </button>
+                onClick={handleAnonymousLogin}
+                className="rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-600 px-5 py-2.5 text-sm font-medium text-white shadow-md transition hover:from-emerald-600 hover:to-emerald-700 hover:shadow-lg"
+              >
+                Continue as Anonymous
+              </button>
             </div>
           </div>
         </section>
