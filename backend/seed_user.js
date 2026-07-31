@@ -37,11 +37,21 @@ async function seed() {
       )
     `);
 
-    // Ensure name column exists
-    await pool.query(`
-      ALTER TABLE users
-      ADD COLUMN IF NOT EXISTS name VARCHAR(255) AFTER id
+    // Add name column only if it does not already exist
+    const [columns] = await pool.query(`
+      SHOW COLUMNS FROM users LIKE 'name'
     `);
+
+    if (columns.length === 0) {
+      await pool.query(`
+        ALTER TABLE users
+        ADD COLUMN name VARCHAR(255) AFTER id
+      `);
+
+      console.log("✅ Added name column");
+    } else {
+      console.log("✅ Name column already exists");
+    }
 
     const users = [
       {
