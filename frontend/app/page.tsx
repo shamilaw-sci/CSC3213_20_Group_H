@@ -7,7 +7,7 @@ export default function HomePage() {
   const handleAnonymousLogin = async () => {
     try {
       const response = await fetch(
-        "http://localhost:5000/api/auth/register/anonymous",
+        "http://localhost:65000/api/auth/register/anonymous",
         {
           method: "POST",
           headers: {
