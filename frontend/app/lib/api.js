@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://localhost:5000/api", // ✅ Fixed: was 3000, backend runs on 5000
+  baseURL: "http://localhost:65000/api", // Backend runs on 65000 in development
 });
 
 // Add token automatically
