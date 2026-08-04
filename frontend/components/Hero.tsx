@@ -1,4 +1,5 @@
 import { Nunito } from "next/font/google";
+import { ChevronDown } from "lucide-react";
 
 const nunito = Nunito({
   subsets: ["latin"],
@@ -7,7 +8,7 @@ const nunito = Nunito({
 
 const Hero = () => {
   return (
-    <div
+    <section
       className={`${nunito.className} flex flex-col justify-center items-center relative h-[calc(100vh-80px)]`}
     >
       <div className="flex flex-col items-center">
@@ -16,16 +17,19 @@ const Hero = () => {
           Because every student deserves to be heard
         </p>
       </div>
-      {/* Add a mute button to mute the audio */}
-      {/* How are you feeling today? */}
-      <p className="absolute bottom-12 left-1/2 -translate-x-1/2 text-lg">
-        How are you feeling today?
-      </p>
-      {/* Scroll down button to show more features */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
-        ↓
+      <div
+        onClick={() =>
+          document.getElementById("info")?.scrollIntoView({
+            behavior: "smooth",
+          })
+        }
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex cursor-pointer flex-col items-center"
+      >
+        <p className="mb-2 text-lg font-semibold">How are you feeling today?</p>
+
+        <ChevronDown size={40} className="animate-bounce text-sky-600" />
       </div>
-    </div>
+    </section>
   );
 };
 

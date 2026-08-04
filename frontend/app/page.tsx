@@ -1,5 +1,6 @@
 "use client";
 import Hero from "@/components/Hero";
+import Info from "@/components/Info";
 import { useRouter } from "next/navigation";
 
 export default function HomePage() {
@@ -37,6 +38,7 @@ export default function HomePage() {
   return (
     <main>
       <Hero />
+      <Info />
     </main>
   );
 }
