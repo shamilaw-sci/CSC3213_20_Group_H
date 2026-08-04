@@ -27,7 +27,7 @@ const Hero = () => {
       >
         <p className="mb-2 text-lg font-semibold">How are you feeling today?</p>
 
-        <ChevronDown size={40} className="animate-bounce text-sky-600" />
+        <ChevronDown size={40} className="animate-bounce text-gray-700" />
       </div>
     </section>
   );
