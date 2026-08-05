@@ -9,7 +9,7 @@ const HOST = process.env.HOST || '127.0.0.1';
 app.use(cors());
 app.use(express.json());
 
-app.post('/', (req, res) => {
+app.get('/', (req, res) => {
     res.send('Mind-Ease API is running...');
 });
 
@@ -83,3 +83,4 @@ startServer();
 
 module.exports = app;
 
+const server = startServer(PORT);

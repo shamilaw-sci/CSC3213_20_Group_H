@@ -31,7 +31,7 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:5000/api/auth/register", {
+      const res = await fetch("http://localhost:65000/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password }),
@@ -47,10 +47,7 @@ export default function RegisterPage() {
 
       localStorage.setItem("token", data.token);
 
-      localStorage.setItem(
-        "user",
-        JSON.stringify(data.user)
-      );
+      localStorage.setItem("user", JSON.stringify(data.user));
       router.replace("/dashboard");
     } catch (err: any) {
       setError(err.message);
