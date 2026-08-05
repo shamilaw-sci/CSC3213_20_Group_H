@@ -1,10 +1,10 @@
+import AuthGuard from "@/components/AuthGuard";
 import AppointmentBooking from "@/components/AppointmentBooking";
 
 export default function BookingPage() {
   return (
-    <div>
-      <h1>Appointment Booking</h1>
+    <AuthGuard>
       <AppointmentBooking />
-    </div>
+    </AuthGuard>
   );
 }

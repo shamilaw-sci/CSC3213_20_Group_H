@@ -17,7 +17,7 @@ export default function LoginPage() {
 
     try {
       // Connect to the backend API - Ensure your backend is running on 5000
-      const res = await fetch("http://localhost:5000/api/auth/login", {
+      const res = await fetch("http://localhost:65000/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -34,7 +34,14 @@ export default function LoginPage() {
       // --- CRITICAL STEP FOR MEMBER 401 ---
       // Store the JWT token & user info for the rest of the team
       localStorage.setItem("token", data.token);
-      localStorage.setItem("role", data.role);
+
+      localStorage.setItem(
+        "user",
+        JSON.stringify({
+          id: data.userId,
+          role: data.role,
+        }),
+      );
 
       // Successfully logged in
       router.replace("/dashboard");
@@ -52,7 +59,7 @@ export default function LoginPage() {
 
     try {
       const res = await fetch(
-        "http://localhost:5000/api/auth/register/anonymous",
+        "http://localhost:65000/api/auth/register/anonymous",
         {
           method: "POST",
         },

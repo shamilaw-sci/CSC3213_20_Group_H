@@ -1,13 +1,44 @@
-import Link from "next/link";
+"use client";
+import Hero from "@/components/Hero";
+import Info from "@/components/Info";
+import { useRouter } from "next/navigation";
 
-export default function Home() {
-    return (
-        <div style={{ padding: "50px" }}>
-            <h1>CareBridge</h1>
+export default function HomePage() {
+  const router = useRouter();
 
-            <Link href="/login">
-                Login
-            </Link>
-        </div>
-    );
+  const handleAnonymousLogin = async () => {
+    try {
+      const response = await fetch(
+        "http://localhost:65000/api/auth/register/anonymous",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({}),
+        },
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
+
+        router.push("/dashboard");
+      } else {
+        alert(data.message);
+      }
+    } catch (error) {
+      console.error("Anonymous login error:", error);
+      alert("Server error");
+    }
+  };
+
+  return (
+    <main>
+      <Hero />
+      <Info />
+    </main>
+  );
 }

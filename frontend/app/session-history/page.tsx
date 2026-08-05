@@ -1,10 +1,10 @@
+import AuthGuard from "@/components/AuthGuard";
 import SessionHistory from "@/components/SessionHistory";
 
 export default function SessionHistoryPage() {
   return (
-    <div>
-      <h1>Session History</h1>
+    <AuthGuard>
       <SessionHistory />
-    </div>
+    </AuthGuard>
   );
 }

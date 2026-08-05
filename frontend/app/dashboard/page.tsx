@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { logout } from "@/lib/auth";
 import { useRouter } from "next/navigation";
+import AuthGuard from "@/components/AuthGuard";
 
 export default function Dashboard() {
   const router = useRouter();
@@ -20,9 +21,10 @@ export default function Dashboard() {
       setIsCheckingAuth(false);
       return;
     }
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
 
-    setUserId(localStorage.getItem("userId"));
-    setRole(localStorage.getItem("role"));
+  setUserId(user.id);
+  setRole(user.role);
     setIsCheckingAuth(false);
   }, [router]);
 
@@ -40,13 +42,36 @@ export default function Dashboard() {
   }
 
   return (
-    <div style={{ padding: "50px" }}>
-      <h1>Dashboard</h1>
+  <div style={{ padding: "50px" }}>
+    <h1>Dashboard</h1>
 
-      <p>User ID: {userId}</p>
-      <p>Role: {role}</p>
+    {role === "anonymous" ? (
+      <>
+        <h2>Welcome Anonymous User</h2>
 
-      <button onClick={handleLogout}>Logout</button>
-    </div>
-  );
+        <p>User ID: {userId}</p>
+
+        <p>
+          Account Type: Anonymous Student
+        </p>
+
+        <p>
+          You can continue using CareBridge without revealing your identity.
+        </p>
+      </>
+    ) : (
+      <>
+        <h2>Welcome back</h2>
+
+        <p>User ID: {userId}</p>
+
+        <p>Role: {role}</p>
+      </>
+    )}
+
+    <button onClick={handleLogout}>
+      Logout
+    </button>
+  </div>
+);
 }
