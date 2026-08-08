@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Nunito } from "next/font/google";
 import Link from "next/link";
+import EmergencyButton from "./EmergencyButton";
 
 const nunito = Nunito({
   subsets: ["latin"],
@@ -46,6 +47,10 @@ export default function Navbar() {
 
         <li>
           <Link href="/contact">Contact</Link>
+        </li>
+
+        <li>
+          <EmergencyButton />
         </li>
 
         {isLoggedIn ? (

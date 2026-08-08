@@ -3,6 +3,8 @@ const cors = require("cors");
 require("dotenv").config();
 
 const passport = require('./config/passport');
+const authRoutes = require("./routes/authRoutes");
+const emergencyRoutes = require("./routes/emergencyRoutes");
 
 const app = express();
 
@@ -16,7 +18,7 @@ app.use(
 app.use(express.json());
 
 app.use(require("express-session")({
-  secret: process.env.JWT_SECRET,
+  secret: process.env.JWT_SECRET || 'fallback_secret_key',
   resave: false,
   saveUninitialized: false,
   cookie: {
@@ -34,8 +36,10 @@ app.get('/', (req, res) => {
 });
 
 // Authentication Routes
-const authRoutes = require("./routes/authRoutes");
 app.use("/api/auth", authRoutes);
+
+// Production Emergency Support Route (SRS 6.7)
+app.use("/api/emergency", emergencyRoutes);
 
 app.post("/api/logs", (req, res) => {
   const {
@@ -69,27 +73,6 @@ app.post("/api/logs", (req, res) => {
     success: true,
     message: "Request logged successfully",
     severity: flaggedSeverity,
-  });
-});
-
-app.post("/api/help", (req, res) => {
-  const {
-    message = "Emergency help requested",
-    metadata = {},
-  } = req.body || {};
-
-  console.log(
-    "[help-request]",
-    JSON.stringify({
-      message,
-      metadata,
-      timestamp: new Date().toISOString(),
-    })
-  );
-
-  res.status(200).json({
-    success: true,
-    message: "Help request received",
   });
 });
 

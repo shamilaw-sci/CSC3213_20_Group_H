@@ -13,6 +13,9 @@ const io = new Server(server, {
   },
 });
 
+// Make io globally available for controllers (like emergency triggers)
+global.io = io;
+
 io.on("connection", (socket) => {
   console.log("User Connected:", socket.id);
 
