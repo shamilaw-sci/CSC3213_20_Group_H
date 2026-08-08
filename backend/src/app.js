@@ -2,12 +2,9 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 
+const passport = require('./config/passport');
+
 const app = express();
-<<<<<<< HEAD
-const DEFAULT_PORT = Number(process.env.PORT || 5000);
-const HOST = process.env.HOST || '127.0.0.1';
-=======
->>>>>>> origin/feature/module-4-booking-scheduling
 
 app.use(
   cors({
@@ -18,6 +15,20 @@ app.use(
 
 app.use(express.json());
 
+app.use(require("express-session")({
+  secret: process.env.JWT_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === "production",
+  },
+}));
+
+app.use(
+  passport.initialize()
+);
+app.use(passport.session());
+
 app.get('/', (req, res) => {
     res.send('Mind-Ease API is running...');
 });
@@ -26,7 +37,6 @@ app.get('/', (req, res) => {
 const authRoutes = require("./routes/authRoutes");
 app.use("/api/auth", authRoutes);
 
-// Application Logs
 app.post("/api/logs", (req, res) => {
   const {
     message,
@@ -62,7 +72,6 @@ app.post("/api/logs", (req, res) => {
   });
 });
 
-// Emergency Help Route
 app.post("/api/help", (req, res) => {
   const {
     message = "Emergency help requested",

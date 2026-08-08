@@ -181,6 +181,19 @@ export default function LoginPage() {
             >
               Continue as Anonymous
             </button>
+
+            {/* GOOGLE LOGIN BUTTON */}
+            <button
+              type="button"
+              onClick={() => {
+                window.location.href =
+                  "http://localhost:5000/api/auth/google";
+              }}
+              className="w-full mt-3 py-3 px-4 rounded-xl bg-red-500 text-white font-medium hover:bg-red-400 transition-all"
+            >
+              Continue with Google
+            </button>
+
           </form>
 
           <div className="mt-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
