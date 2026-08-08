@@ -19,6 +19,9 @@ app.use(require("express-session")({
   secret: process.env.JWT_SECRET,
   resave: false,
   saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === "production",
+  },
 }));
 
 app.use(
