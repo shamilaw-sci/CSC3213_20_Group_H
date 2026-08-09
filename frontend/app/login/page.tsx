@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { API_BASE_URL } from "../../services/api";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -16,8 +17,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // Connect to the backend API - Ensure your backend is running on 5000
-      const res = await fetch("http://localhost:5000/api/auth/login", {
+      const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -59,7 +59,7 @@ export default function LoginPage() {
 
     try {
       const res = await fetch(
-        "http://localhost:65000/api/auth/register/anonymous",
+        `${API_BASE_URL}/api/auth/register/anonymous`,
         {
           method: "POST",
         },
@@ -186,8 +186,7 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => {
-                window.location.href =
-                  "http://localhost:5000/api/auth/google";
+                window.location.href = `${API_BASE_URL}/api/auth/google`;
               }}
               className="w-full mt-3 py-3 px-4 rounded-xl bg-red-500 text-white font-medium hover:bg-red-400 transition-all"
             >
