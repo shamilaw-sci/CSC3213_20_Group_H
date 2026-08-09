@@ -1,22 +1,19 @@
 import db from '../config/db.js';
 
-// Get Analytics Data for Charts
+// Get Analytics Data for Admin Dashboard Charts
 export const getAnalyticsDashboard = async (req, res) => {
     try {
-        // Aggregate severity trends from emergencies table
         const [severityStats] = await db.query(
             `SELECT severity_score, COUNT(*) as count FROM emergencies GROUP BY severity_score`
         );
 
-        // Aggregate usage statistics (e.g., active sessions per week)
         const [sessionStats] = await db.query(
             `SELECT DATE(created_at) as date, COUNT(*) as count FROM emergencies GROUP BY DATE(created_at) ORDER BY date DESC LIMIT 7`
         );
 
-        // Total Counts
         const [[{ totalStudents }]] = await db.query(`SELECT COUNT(*) as totalStudents FROM users WHERE role='student'`);
         const [[{ totalCounsellors }]] = await db.query(`SELECT COUNT(*) as totalCounsellors FROM users WHERE role='counsellor'`);
-        const [[{ activeEmergencies }]] = await db.query(`SELECT COUNT(*) as activeEmergencies WHERE status != 'Resolved'`);
+        const [[{ activeEmergencies }]] = await db.query(`SELECT COUNT(*) as activeEmergencies FROM emergencies WHERE status != 'Resolved'`);
 
         return res.status(200).json({
             success: true,
@@ -47,7 +44,7 @@ export const updateUserStatus = async (req, res) => {
 // Counsellor Verification Workflow
 export const verifyCounsellor = async (req, res) => {
     const { counsellorId } = req.params;
-    const { verification_status } = req.body; // 'approved' or 'rejected'
+    const { verification_status } = req.body; 
     try {
         await db.query(
             `UPDATE counsellor_profiles SET verification_status = ? WHERE id = ?`,

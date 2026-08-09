@@ -5,7 +5,7 @@ import session from "express-session";
 import passport from "./config/passport.js";
 import authRoutes from "./routes/authRoutes.js";
 import emergencyRoutes from "./routes/emergencyRoutes.js";
-import adminRoutes from ".routes/adminRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 
 dotenv.config();
 

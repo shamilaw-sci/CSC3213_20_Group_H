@@ -1,6 +1,6 @@
 import express from 'express';
 import { getAnalyticsDashboard, updateUserStatus, verifyCounsellor } from '../controllers/adminController.js';
-import { authMiddleware as verifyToken } from '../middlewares/authMiddleware.js';
+import { authMiddleware as verifyToken } from '../auth/authMiddleware.js';
 import { verifyAdmin } from '../middlewares/adminMiddleware.js';
 
 const router = express.Router();
