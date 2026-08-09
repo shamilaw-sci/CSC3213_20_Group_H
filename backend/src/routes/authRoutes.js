@@ -92,7 +92,7 @@ router.get(
 
 
         res.redirect(
-`http://localhost:3001/auth/google/callback?token=${token}&userId=${userId}&role=${role}`
+`http://localhost:3000/auth/google/callback?token=${token}&userId=${userId}&role=${role}`
 );
 
 
