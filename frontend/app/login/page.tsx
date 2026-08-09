@@ -17,7 +17,7 @@ export default function LoginPage() {
 
     try {
       // Connect to the backend API - Ensure your backend is running on 5000
-      const res = await fetch("http://localhost:65000/api/auth/login", {
+      const res = await fetch("http://localhost:5000/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -181,6 +181,19 @@ export default function LoginPage() {
             >
               Continue as Anonymous
             </button>
+
+            {/* GOOGLE LOGIN BUTTON */}
+            <button
+              type="button"
+              onClick={() => {
+                window.location.href =
+                  "http://localhost:5000/api/auth/google";
+              }}
+              className="w-full mt-3 py-3 px-4 rounded-xl bg-red-500 text-white font-medium hover:bg-red-400 transition-all"
+            >
+              Continue with Google
+            </button>
+
           </form>
 
           <div className="mt-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
