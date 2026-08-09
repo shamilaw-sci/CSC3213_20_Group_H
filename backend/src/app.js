@@ -5,6 +5,7 @@ import session from "express-session";
 import passport from "./config/passport.js";
 import authRoutes from "./routes/authRoutes.js";
 import emergencyRoutes from "./routes/emergencyRoutes.js";
+import adminRoutes from ".routes/adminRoutes.js";
 
 dotenv.config();
 
@@ -44,6 +45,8 @@ app.use("/api/auth", authRoutes);
 
 // Production Emergency Support Route (SRS 6.7)
 app.use("/api/emergency", emergencyRoutes);
+
+app.use("/api/admin", adminRoutes);
 
 app.post("/api/logs", (req, res) => {
   const {
