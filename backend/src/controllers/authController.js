@@ -1,8 +1,9 @@
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const db = require('../config/db');
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 
-exports.register = async (req, res) => {
+import db from '../config/db.js';
+
+export const register = async (req, res) => {
     const { name, email, password } = req.body;
 
     if (!name || !email || !password) {
@@ -53,7 +54,7 @@ exports.register = async (req, res) => {
     }
 };
 
-exports.login = async (req, res) => {
+export const login = async (req, res) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
@@ -97,7 +98,7 @@ exports.login = async (req, res) => {
     }
 };
 
-exports.anonymousLogin = async (req, res) => {
+export const anonymousLogin = async (req, res) => {
     try {
         const anonymousId = "anon_" + Math.random().toString(36).substring(2, 10);
 
@@ -117,7 +118,6 @@ exports.anonymousLogin = async (req, res) => {
 
         const secretKey = process.env.JWT_SECRET || 'fallback_secret_key';
 
-        // Fixed: Use the newly inserted ID and role directly from the result and logic
         const token = jwt.sign(
             {
                 id: result.insertId,
@@ -144,4 +144,10 @@ exports.anonymousLogin = async (req, res) => {
             message: error.message
         });
     }
+};
+
+export default {
+    register,
+    login,
+    anonymousLogin,
 };

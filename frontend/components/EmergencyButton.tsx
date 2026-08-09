@@ -10,6 +10,14 @@ export default function EmergencyButton() {
     setLoading(true);
     try {
       const token = localStorage.getItem("token"); // or retrieve from your auth state / cookies
+
+      if (!token) {
+        alert(
+          "You must be logged in as a student to trigger an emergency alert.",
+        );
+        return; // Stops it from hanging on transmitting
+      }
+
       const response = await fetch("http://localhost:5000/api/emergency", {
         method: "POST",
         headers: {

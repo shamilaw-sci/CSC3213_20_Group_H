@@ -1,6 +1,6 @@
-const db = require('../config/db');
+import db from '../config/db.js';
 
-exports.triggerEmergency = async (req, res) => {
+export const triggerEmergency = async (req, res) => {
     // req.user is supplied by your existing JWT auth middleware
     const studentId = req.user.id; 
     const { description, aiConfidence } = req.body;
