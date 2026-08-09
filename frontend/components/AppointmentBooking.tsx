@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import axios from "axios";
+import { API_BASE_URL } from "../services/api";
 
 const AppointmentBooking = () => {
   const [appointment, setAppointment] = useState({
@@ -14,7 +15,7 @@ const AppointmentBooking = () => {
   const handleBooking = async () => {
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/book",
+        `${API_BASE_URL}/api/book`,
         appointment
       );
 
