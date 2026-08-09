@@ -83,4 +83,7 @@ startServer();
 
 module.exports = app;
 
+// Define PORT from environment variables with a fallback to 5000
+const PORT = process.env.PORT || 5000;
+
 const server = startServer(PORT);
