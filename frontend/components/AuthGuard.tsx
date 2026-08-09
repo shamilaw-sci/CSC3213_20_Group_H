@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 interface AuthGuardProps {
@@ -13,6 +13,7 @@ export default function AuthGuard({
   allowedRoles,
 }: AuthGuardProps) {
   const router = useRouter();
+  const [authorized, setAuthorized] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -23,17 +24,32 @@ export default function AuthGuard({
       return;
     }
 
-    const user = JSON.parse(userData);
+    try {
+      const user = JSON.parse(userData);
 
-    if (
-      allowedRoles &&
-      !allowedRoles.includes(user.role)
-    ) {
-      router.replace("/dashboard");
-      return;
+      if (
+        allowedRoles &&
+        !allowedRoles.includes(user.role)
+      ) {
+        router.replace("/dashboard");
+        return;
+      }
+
+      setAuthorized(true);
+    } catch (error) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      router.replace("/login");
     }
-
   }, [router, allowedRoles]);
+
+  if (!authorized) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <p>Checking authentication...</p>
+      </div>
+    );
+  }
 
   return <>{children}</>;
 }
