@@ -1,10 +1,12 @@
-const express = require("express");
-const cors = require("cors");
-require("dotenv").config();
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import session from "express-session";
+import passport from "./config/passport.js";
+import authRoutes from "./routes/authRoutes.js";
+import emergencyRoutes from "./routes/emergencyRoutes.js";
 
-const passport = require('./config/passport');
-const authRoutes = require("./routes/authRoutes");
-const emergencyRoutes = require("./routes/emergencyRoutes");
+dotenv.config();
 
 const app = express();
 
@@ -17,18 +19,18 @@ app.use(
 
 app.use(express.json());
 
-app.use(require("express-session")({
-  secret: process.env.JWT_SECRET || 'fallback_secret_key',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === "production",
-  },
-}));
-
 app.use(
-  passport.initialize()
+  session({
+    secret: process.env.JWT_SECRET || 'fallback_secret_key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+    },
+  })
 );
+
+app.use(passport.initialize());
 app.use(passport.session());
 
 app.get('/', (req, res) => {
@@ -48,8 +50,7 @@ app.post("/api/logs", (req, res) => {
     metadata = {},
   } = req.body || {};
 
-  const normalizedSeverity =
-    String(severity).toLowerCase();
+  const normalizedSeverity = String(severity).toLowerCase();
 
   const flaggedSeverity = [
     "critical",
@@ -76,4 +77,4 @@ app.post("/api/logs", (req, res) => {
   });
 });
 
-module.exports = app;
+export default app;
