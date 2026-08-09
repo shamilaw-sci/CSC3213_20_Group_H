@@ -1,11 +1,10 @@
-const express = require('express');
-const router = express.Router();
-const emergencyController = require('../controllers/emergencyController');
+import express from 'express';
+import * as emergencyController from '../controllers/emergencyController.js';
+import { authMiddleware as verifyToken } from '../auth/authMiddleware.js';
 
-// Correct: Destructure authMiddleware and rename/alias it to verifyToken
-const { authMiddleware: verifyToken } = require('../auth/authMiddleware');
+const router = express.Router();
 
 // POST /api/emergency (Secured with JWT)
 router.post('/', verifyToken, emergencyController.triggerEmergency);
 
-module.exports = router;
+export default router;

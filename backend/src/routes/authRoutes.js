@@ -1,20 +1,20 @@
-const express = require('express');
+import express from 'express';
+import passport from 'passport';
+import jwt from 'jsonwebtoken';
+
+import db from '../config/db.js';
+import { login, register, anonymousLogin } from '../controllers/authController.js';
+
 const router = express.Router();
 
-const passport = require('passport');
-const jwt = require('jsonwebtoken');
-const db = require('../config/db');
-
-const authController = require('../controllers/authController');
-
 // POST /api/auth/login
-router.post('/login', authController.login);
+router.post('/login', login);
 
 // POST /api/auth/register
-router.post('/register', authController.register);
+router.post('/register', register);
 
 // POST /api/auth/register/anonymous
-router.post('/register/anonymous', authController.anonymousLogin);
+router.post('/register/anonymous', anonymousLogin);
 
 // Google Authentication
 
@@ -109,4 +109,4 @@ router.get(
   }
 );
 
-module.exports = router;
+export default router;

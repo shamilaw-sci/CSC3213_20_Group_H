@@ -14,7 +14,7 @@ export default function EmergencyPage() {
     setIsSubmitting(true);
 
     try {
-      await api.post("/help", {
+      await api.post("/emergency", {
         message: "User requested emergency help",
       });
     } catch (err) {
