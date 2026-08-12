@@ -16,7 +16,7 @@ export default function AppointmentBooking() {
 
   useEffect(() => {
     fetch(
-      "http://localhost:5000/api/counsellors"
+      "http://localhost:5050/api/counsellors"
     )
       .then((res) => res.json())
       .then(setCounsellors);
@@ -28,7 +28,7 @@ export default function AppointmentBooking() {
     setSelectedCounsellor(counsellorId);
 
     const res = await fetch(
-      `http://localhost:5000/api/counsellors/${counsellorId}/availability`
+      `http://localhost:5050/api/counsellors/${counsellorId}/availability`
     );
 
     const data = await res.json();
@@ -42,7 +42,7 @@ export default function AppointmentBooking() {
     );
 
     await fetch(
-      "http://localhost:5000/api/counsellors/book",
+      "http://localhost:5050/api/counsellors/book",
       {
         method: "POST",
         headers: {

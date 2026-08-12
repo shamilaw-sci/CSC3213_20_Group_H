@@ -1,11 +1,12 @@
-const express = require("express");
-const router = express.Router();
+import express from "express";
 
-const {
+import {
   getCounsellors,
   getAvailability,
   bookAppointment,
-} = require("../controllers/counsellorController");
+} from "../controllers/counsellorController.js";
+
+const router = express.Router();
 
 router.get("/", getCounsellors);
 
@@ -19,4 +20,4 @@ router.post(
   bookAppointment
 );
 
-module.exports = router;
+export default router;
