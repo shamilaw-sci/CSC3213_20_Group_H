@@ -1,81 +1,132 @@
 "use client";
-import { useState } from "react";
-import axios from "axios";
-import { API_BASE_URL } from "../services/api";
 
-const AppointmentBooking = () => {
-  const [appointment, setAppointment] = useState({
-    professional_id: 1,
-    client_id: 2,
-    appointment_date: "",
-    start_time: "",
-    end_time: "",
-  });
+import { useEffect, useState } from "react";
 
-  const handleBooking = async () => {
-    try {
-      const response = await axios.post(
-        `${API_BASE_URL}/api/book`,
-        appointment
-      );
+export default function AppointmentBooking() {
+  const [counsellors, setCounsellors] =
+    useState([]);
 
-      alert(response.data.message);
-    } catch (error: any) {
-      alert(
-        error.response?.data?.message ||
-        "Booking Failed"
-      );
-    }
+  const [selectedCounsellor,
+    setSelectedCounsellor] = useState("");
+
+  const [slots, setSlots] = useState([]);
+
+  const [selectedSlot,
+    setSelectedSlot] = useState("");
+
+  useEffect(() => {
+    fetch(
+      "http://localhost:5000/api/counsellors"
+    )
+      .then((res) => res.json())
+      .then(setCounsellors);
+  }, []);
+
+  const loadSlots = async (
+    counsellorId: string
+  ) => {
+    setSelectedCounsellor(counsellorId);
+
+    const res = await fetch(
+      `http://localhost:5000/api/counsellors/${counsellorId}/availability`
+    );
+
+    const data = await res.json();
+
+    setSlots(data);
+  };
+
+  const handleBook = async () => {
+    const user = JSON.parse(
+      localStorage.getItem("user") || "{}"
+    );
+
+    await fetch(
+      "http://localhost:5000/api/counsellors/book",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+        body: JSON.stringify({
+          studentId: user.id,
+          counsellorId:
+            selectedCounsellor,
+          slotId: selectedSlot,
+        }),
+      }
+    );
+
+    alert("Booking successful");
   };
 
   return (
-    <div>
-      <h2>Appointment Booking</h2>
+    <div className="space-y-6">
+      <div>
+        <label className="font-bold">
+          Select Counsellor
+        </label>
 
-      <input
-        type="date"
-        value={appointment.appointment_date}
-        onChange={(e) =>
-          setAppointment({
-            ...appointment,
-            appointment_date: e.target.value,
-          })
-        }
-      />
+        <select
+          className="w-full border rounded-xl p-3 mt-2"
+          onChange={(e) =>
+            loadSlots(e.target.value)
+          }
+        >
+          <option>
+            Choose Counsellor
+          </option>
 
-      <br /><br />
+          {counsellors.map((c: any) => (
+            <option
+              key={c.id}
+              value={c.id}
+            >
+              {c.name} - {c.specialization}
+            </option>
+          ))}
+        </select>
+      </div>
 
-      <input
-        type="time"
-        value={appointment.start_time}
-        onChange={(e) =>
-          setAppointment({
-            ...appointment,
-            start_time: e.target.value,
-          })
-        }
-      />
+      <div>
+        <label className="font-bold">
+          Available Slots
+        </label>
 
-      <br /><br />
+        <select
+          className="w-full border rounded-xl p-3 mt-2"
+          onChange={(e) =>
+            setSelectedSlot(
+              e.target.value
+            )
+          }
+        >
+          <option>
+            Select Slot
+          </option>
 
-      <input
-        type="time"
-        value={appointment.end_time}
-        onChange={(e) =>
-          setAppointment({
-            ...appointment,
-            end_time: e.target.value,
-          })
-        }
-      />
+          {slots.map((slot: any) => (
+            <option
+              key={slot.id}
+              value={slot.id}
+            >
+              {slot.available_date}
+              {" | "}
+              {slot.start_time}
+              {" - "}
+              {slot.end_time}
+            </option>
+          ))}
+        </select>
+      </div>
 
-      <br /><br />
-
-      <button onClick={handleBooking}>
+      <button
+        className="bg-blue-600 text-white px-6 py-3 rounded-xl"
+        onClick={handleBook}
+      >
         Book Appointment
       </button>
     </div>
   );
-};
-
-export default AppointmentBooking;
+}
