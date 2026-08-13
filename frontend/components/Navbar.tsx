@@ -11,15 +11,25 @@ const nunito = Nunito({
 
 export default function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
+    const role = localStorage.getItem("role");
     setIsLoggedIn(!!token);
+
+    if (
+      role &&
+      (role.toLowerCase() === "admin" || role.toLowerCase() === "supervisor")
+    ) {
+      setIsAdmin(true);
+    }
   }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    localStorage.removeItem("role");
     window.location.href = "/login";
   };
 
@@ -47,6 +57,17 @@ export default function Navbar() {
         <li>
           <Link href="/contact">Contact</Link>
         </li>
+
+        {isAdmin && (
+          <li>
+            <Link
+              href="/admin/dashboard"
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-sm transition-all"
+            >
+              Admin Dashboard
+            </Link>
+          </li>
+        )}
 
         {isLoggedIn ? (
           <>
