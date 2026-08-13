@@ -24,12 +24,12 @@ export default function GoogleCallback() {
         "user",
         JSON.stringify({
           id: userId,
-          role: role
+          role: role.toLowerCase()
         })
       );
 
 
-      router.replace("/dashboard");
+      router.replace("/student/dashboard");
 
     }
     else{

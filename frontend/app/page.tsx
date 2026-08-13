@@ -9,7 +9,7 @@ export default function HomePage() {
   const handleAnonymousLogin = async () => {
     try {
       const response = await fetch(
-        "http://localhost:65000/api/auth/register/anonymous",
+        "http://localhost:5000/api/auth/register/anonymous",
         {
           method: "POST",
           headers: {
@@ -25,7 +25,7 @@ export default function HomePage() {
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
 
-        router.push("/dashboard");
+        router.push("/student/dashboard");
       } else {
         alert(data.message);
       }

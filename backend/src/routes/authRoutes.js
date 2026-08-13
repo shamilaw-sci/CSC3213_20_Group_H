@@ -16,6 +16,12 @@ router.post('/register', authController.register);
 // POST /api/auth/register/anonymous
 router.post('/register/anonymous', authController.anonymousLogin);
 
+// Forgot password
+router.post('/forgot-password', authController.forgotPassword);
+
+// Reset password
+router.post('/reset-password', authController.resetPassword);
+
 // Google Authentication
 
 // Step 1: Redirect user to Google login
@@ -81,19 +87,18 @@ router.get(
       // Generate CareBridge JWT
       const token = jwt.sign(
         {
-          userId,
-          role
+          id: userId,
+          role: role.toLowerCase(),
         },
         process.env.JWT_SECRET,
         {
-          expiresIn: "1h"
+          expiresIn: "1h",
         }
       );
 
-
-        res.redirect(
-`http://localhost:3000/auth/google/callback?token=${token}&userId=${userId}&role=${role}`
-);
+      res.redirect(
+        `http://localhost:3000/student/dashboard?token=${token}&userId=${userId}&role=${role}`
+      );
 
 
     } catch(error){
