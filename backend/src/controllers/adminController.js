@@ -1,4 +1,22 @@
+import PDFDocument from 'pdfkit';
 import db from '../config/db.js';
+
+const buildAdminReportData = async () => {
+    const [[{ totalStudents }]] = await db.query(`SELECT COUNT(*) as totalStudents FROM users WHERE role IN ('student', 'anonymous')`);
+    const [[{ totalCounsellors }]] = await db.query(`SELECT COUNT(*) as totalCounsellors FROM users WHERE role='counsellor'`);
+    const [[{ activeEmergencies }]] = await db.query(`SELECT COUNT(*) as activeEmergencies FROM emergencies WHERE status != 'Resolved'`);
+    const [severityStats] = await db.query(
+        `SELECT severity_score, COUNT(*) as count FROM emergencies GROUP BY severity_score ORDER BY severity_score ASC`
+    );
+
+    return {
+        totalStudents,
+        totalCounsellors,
+        activeEmergencies,
+        severityStats,
+        generatedAt: new Date().toISOString()
+    };
+};
 
 // Get Analytics Data for Admin Dashboard Charts
 export const getAnalyticsDashboard = async (req, res) => {
@@ -72,5 +90,82 @@ export const verifyCounsellor = async (req, res) => {
     } catch (error) {
         console.error('Counsellor verification error:', error);
         return res.status(500).json({ error: 'Failed to update counsellor workflow.' });
+    }
+};
+
+export const getAdminReport = async (req, res) => {
+    const { format } = req.params;
+    const normalizedFormat = String(format || '').toLowerCase();
+
+    if (!['csv', 'pdf'].includes(normalizedFormat)) {
+        return res.status(400).json({ success: false, error: 'Unsupported report format.' });
+    }
+
+    try {
+        const [[{ totalStudents }]] = await db.query(`SELECT COUNT(*) as totalStudents FROM users WHERE role IN ('student', 'anonymous')`);
+        const [[{ totalCounsellors }]] = await db.query(`SELECT COUNT(*) as totalCounsellors FROM users WHERE role='counsellor'`);
+        const [[{ activeEmergencies }]] = await db.query(`SELECT COUNT(*) as activeEmergencies FROM emergencies WHERE status != 'Resolved'`);
+        const [severityStats] = await db.query(
+            `SELECT severity_score, COUNT(*) as count FROM emergencies GROUP BY severity_score ORDER BY severity_score ASC`
+        );
+
+        const generatedAt = new Date().toISOString();
+
+        if (normalizedFormat === 'csv') {
+            const rows = [
+                ['Report Type', 'Value'],
+                ['Generated At', generatedAt],
+                ['Total Students & Anonymous', totalStudents],
+                ['Active Counsellors', totalCounsellors],
+                ['Pending Crisis Alerts', activeEmergencies],
+                ['Severity Summary', '']
+            ];
+
+            severityStats.forEach((entry) => {
+                rows.push(['Severity Score', `${entry.severity_score}:${entry.count}`]);
+            });
+
+            const csv = rows
+                .map((row) => row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(','))
+                .join('\n');
+
+            res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+            res.setHeader('Content-Disposition', 'attachment; filename="carebridge-admin-report.csv"');
+            return res.status(200).send(csv);
+        }
+
+        const PDFDocument = (await import('pdfkit')).default;
+        const doc = new PDFDocument({ margin: 50, size: 'A4' });
+        const chunks = [];
+
+        doc.on('data', (chunk) => chunks.push(chunk));
+        doc.on('end', () => {
+            const pdfBuffer = Buffer.concat(chunks);
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', 'attachment; filename="carebridge-admin-report.pdf"');
+            return res.status(200).send(pdfBuffer);
+        });
+
+        doc.fontSize(22).text('CareBridge Admin Report', { align: 'center' });
+        doc.moveDown();
+        doc.fontSize(12).text(`Generated At: ${generatedAt}`);
+        doc.text(`Total Students & Anonymous: ${totalStudents}`);
+        doc.text(`Active Counsellors: ${totalCounsellors}`);
+        doc.text(`Pending Crisis Alerts: ${activeEmergencies}`);
+        doc.moveDown();
+        doc.fontSize(14).text('Severity Summary');
+
+        if (severityStats.length === 0) {
+            doc.text('No emergency severity data available.');
+        } else {
+            severityStats.forEach((entry) => {
+                doc.text(`Severity ${entry.severity_score}: ${entry.count} incidents`);
+            });
+        }
+
+        doc.end();
+    } catch (error) {
+        console.error('Admin report generation error:', error);
+        return res.status(500).json({ success: false, error: 'Failed to generate admin report.' });
     }
 };
