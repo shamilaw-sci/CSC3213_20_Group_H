@@ -23,3 +23,28 @@ CREATE TABLE IF NOT EXISTS emergencies (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (student_id) REFERENCES users(id)
 );
+
+-- Ensure users table supports suspension and correct role strings
+ALTER TABLE users 
+MODIFY COLUMN role ENUM('student', 'counsellor', 'admin', 'supervisor') DEFAULT 'student',
+ADD COLUMN IF NOT EXISTS is_suspended BOOLEAN DEFAULT FALSE;
+
+-- Ensure counsellor profiles exist for verification workflow
+CREATE TABLE IF NOT EXISTS counsellor_profiles (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    verification_status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+    document_url VARCHAR(255),
+    is_available BOOLEAN DEFAULT TRUE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Ensure system reports log exists
+CREATE TABLE IF NOT EXISTS system_reports (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    generated_by INT,
+    report_type ENUM('PDF', 'CSV'),
+    title VARCHAR(150),
+    file_path VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
