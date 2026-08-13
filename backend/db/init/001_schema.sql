@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS emergencies (
 
 -- Ensure users table supports suspension and correct role strings
 ALTER TABLE users 
-MODIFY COLUMN role ENUM('student', 'counsellor', 'admin', 'supervisor') DEFAULT 'student',
+MODIFY COLUMN role ENUM('student', 'counsellor', 'admin', 'supervisor', 'anonymous') DEFAULT 'student';
 ADD COLUMN IF NOT EXISTS is_suspended BOOLEAN DEFAULT FALSE;
 
 -- Ensure counsellor profiles exist for verification workflow
