@@ -111,13 +111,13 @@ export default function Navbar() {
               Features
             </Link>
             <Link
-              href="/#how-it-works"
+              href="/how-it-works"
               className="hover:text-indigo-600 transition-colors"
             >
               How it works
             </Link>
             <Link
-              href="/#about"
+              href="/about"
               className="hover:text-indigo-600 transition-colors"
             >
               About
