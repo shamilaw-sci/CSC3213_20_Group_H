@@ -5,6 +5,7 @@ import session from "express-session";
 import passport from "./config/passport.js";
 import authRoutes from "./routes/authRoutes.js";
 import emergencyRoutes from "./routes/emergencyRoutes.js";
+import chatRoutes from "./routes/chatRoutes.js";
 
 dotenv.config();
 
@@ -44,6 +45,9 @@ app.use("/api/auth", authRoutes);
 
 // Production Emergency Support Route (SRS 6.7)
 app.use("/api/emergency", emergencyRoutes);
+
+// Patient-friendly counselling chatbot
+app.use("/api/chat", chatRoutes);
 
 app.post("/api/logs", (req, res) => {
   const {

@@ -51,6 +51,10 @@ export default function Navbar() {
         {isLoggedIn ? (
           <>
             <li>
+              <Link href="/chat">Chat</Link>
+            </li>
+
+            <li>
               <Link href="/availability">Availability</Link>
             </li>
 
