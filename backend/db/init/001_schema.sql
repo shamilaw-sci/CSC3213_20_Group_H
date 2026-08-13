@@ -6,9 +6,10 @@ CREATE TABLE IF NOT EXISTS users (
     name VARCHAR(255),
     email VARCHAR(255) UNIQUE,
     password VARCHAR(255),
-    role VARCHAR(50) NOT NULL DEFAULT 'Student',
+    role ENUM('student', 'counsellor', 'admin', 'supervisor', 'anonymous') NOT NULL DEFAULT 'student',
     anonymousId VARCHAR(100),
     isAnonymous BOOLEAN NOT NULL DEFAULT FALSE,
+    is_suspended BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -23,11 +24,6 @@ CREATE TABLE IF NOT EXISTS emergencies (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (student_id) REFERENCES users(id)
 );
-
--- Ensure users table supports suspension and correct role strings
-ALTER TABLE users 
-MODIFY COLUMN role ENUM('student', 'counsellor', 'admin', 'supervisor', 'anonymous') DEFAULT 'student';
-ADD COLUMN IF NOT EXISTS is_suspended BOOLEAN DEFAULT FALSE;
 
 -- Ensure counsellor profiles exist for verification workflow
 CREATE TABLE IF NOT EXISTS counsellor_profiles (

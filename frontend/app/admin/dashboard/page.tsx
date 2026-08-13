@@ -9,6 +9,12 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { Nunito } from "next/font/google";
+
+const nunito = Nunito({
+  subsets: ["latin"],
+  weight: ["400", "600", "700", "800"],
+});
 
 export default function AdminDashboardPage() {
   const [analytics, setAnalytics] = useState<any>(null);
@@ -60,37 +66,37 @@ export default function AdminDashboardPage() {
 
   if (loading)
     return (
-      <div className="p-12 text-slate-400 bg-slate-950 min-h-screen">
+      <div className={`${nunito.className} p-12 text-gray-500 bg-gray-50 min-h-screen flex items-center justify-center font-semibold text-lg`}>
         Loading Administration Portal...
       </div>
     );
   if (error)
     return (
-      <div className="p-12 text-rose-500 bg-slate-950 min-h-screen">
+      <div className={`${nunito.className} p-12 text-rose-600 bg-gray-50 min-h-screen flex items-center justify-center font-semibold text-lg`}>
         Access Error: {error}
       </div>
     );
 
   return (
-    <div className="p-8 space-y-8 bg-slate-950 text-white min-h-screen">
-      <div className="flex justify-between items-center">
+    <div className={`${nunito.className} p-8 md:p-12 space-y-8 bg-gray-50 text-gray-900 min-h-screen`}>
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
         <div>
-          <h1 className="text-3xl font-bold">Admin Oversight & Monitoring</h1>
-          <p className="text-slate-400 text-sm">
-            Manage platform accounts, review metrics, and generate audit
-            reports.
+          <h1 className="text-3xl font-extrabold tracking-tight">Admin Oversight & Monitoring</h1>
+          <p className="text-gray-500 text-sm mt-1">
+            Manage platform accounts, review metrics, and generate audit reports securely.
           </p>
         </div>
-        <div className="space-x-4">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => handleDownloadReport("csv")}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-sm font-medium transition-colors"
+            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold transition-all shadow-sm"
           >
             Export CSV
           </button>
           <button
             onClick={() => handleDownloadReport("pdf")}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm font-medium transition-colors"
+            className="px-4 py-2.5 bg-gray-900 hover:bg-gray-800 text-white rounded-xl text-sm font-bold transition-all shadow-sm"
           >
             Export PDF
           </button>
@@ -99,50 +105,51 @@ export default function AdminDashboardPage() {
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="p-6 bg-slate-900 border border-slate-800 rounded-xl shadow-sm">
-          <p className="text-slate-400 text-sm font-medium">
-            Total Students & Anonymous Users
+        <div className="p-6 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+          <p className="text-gray-500 text-sm font-semibold uppercase tracking-wider">
+            Total Students & Anonymous
           </p>
-          <h3 className="text-4xl font-bold mt-2">
+          <h3 className="text-4xl font-extrabold mt-3 text-gray-900">
             {analytics?.stats?.totalStudents || 0}
           </h3>
         </div>
-        <div className="p-6 bg-slate-900 border border-slate-800 rounded-xl shadow-sm">
-          <p className="text-slate-400 text-sm font-medium">
+        <div className="p-6 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+          <p className="text-gray-500 text-sm font-semibold uppercase tracking-wider">
             Active Counsellors
           </p>
-          <h3 className="text-4xl font-bold mt-2">
+          <h3 className="text-4xl font-extrabold mt-3 text-gray-900">
             {analytics?.stats?.totalCounsellors || 0}
           </h3>
         </div>
-        <div className="p-6 bg-slate-900 border border-slate-800 rounded-xl shadow-sm">
-          <p className="text-slate-400 text-sm font-medium">
+        <div className="p-6 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+          <p className="text-gray-500 text-sm font-semibold uppercase tracking-wider">
             Pending Crisis Alerts
           </p>
-          <h3 className="text-4xl font-bold mt-2 text-rose-500">
+          <h3 className="text-4xl font-extrabold mt-3 text-rose-600">
             {analytics?.stats?.activeEmergencies || 0}
           </h3>
         </div>
       </div>
 
       {/* Severity Visualization Chart */}
-      <div className="p-6 bg-slate-900 border border-slate-800 rounded-xl">
-        <h2 className="text-xl font-semibold mb-4">
+      <div className="p-6 bg-white border border-gray-100 rounded-2xl shadow-sm">
+        <h2 className="text-xl font-bold mb-6 text-gray-800">
           Emergency Incident Severity Trends
         </h2>
         <div className="h-80 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={analytics?.charts?.severityStats || []}>
-              <XAxis dataKey="severity_score" stroke="#94a3b8" />
-              <YAxis stroke="#94a3b8" />
+              <XAxis dataKey="severity_score" stroke="#9ca3af" tick={{ fill: "#4b5563" }} />
+              <YAxis stroke="#9ca3af" tick={{ fill: "#4b5563" }} />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "#0f172a",
-                  borderColor: "#334155",
-                  borderRadius: "8px",
+                  backgroundColor: "#ffffff",
+                  borderColor: "#e5e7eb",
+                  borderRadius: "12px",
+                  boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                 }}
               />
-              <Bar dataKey="count" fill="#3b82f6" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="count" fill="#4f46e5" radius={[8, 8, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
