@@ -2,12 +2,45 @@
 
 import { useEffect, useState } from "react";
 
+interface Counsellor {
+  id: number;
+  name: string;
+  specialization: string;
+}
+
+interface Slot {
+  id: number;
+  available_date: string;
+  start_time: string;
+  end_time: string;
+}
+
+interface Appointment {
+  id: number;
+  name: string;
+  specialization: string;
+  available_date: string;
+  start_time: string;
+  end_time: string;
+  booked_at: string;
+}
+
 export default function AppointmentBooking() {
-  const [counsellors, setCounsellors] = useState<any[]>([]);
-  const [selectedCounsellor, setSelectedCounsellor] = useState("");
-  const [slots, setSlots] = useState<any[]>([]);
-  const [selectedSlot, setSelectedSlot] = useState("");
-  const [appointments, setAppointments] = useState<any[]>([]);
+  const [counsellors, setCounsellors] = useState<
+    Counsellor[]
+  >([]);
+
+  const [selectedCounsellor, setSelectedCounsellor] =
+    useState("");
+
+  const [slots, setSlots] = useState<Slot[]>([]);
+
+  const [selectedSlot, setSelectedSlot] =
+    useState("");
+
+  const [appointments, setAppointments] = useState<
+    Appointment[]
+  >([]);
 
   useEffect(() => {
     fetchCounsellors();
@@ -21,22 +54,36 @@ export default function AppointmentBooking() {
       );
 
       const data = await res.json();
+
       setCounsellors(data);
     } catch (error) {
-      console.error(error);
+      console.error(
+        "Failed to fetch counsellors:",
+        error
+      );
     }
   };
 
   const fetchAppointments = async () => {
     try {
+      const user = JSON.parse(
+        localStorage.getItem("user") || "{}"
+      );
+
+      if (!user.id) return;
+
       const res = await fetch(
-        "http://localhost:5050/api/sessions/appointments"
+        `http://localhost:5050/api/sessions/${user.id}`
       );
 
       const data = await res.json();
+
       setAppointments(data);
     } catch (error) {
-      console.error(error);
+      console.error(
+        "Failed to fetch appointments:",
+        error
+      );
     }
   };
 
@@ -54,7 +101,10 @@ export default function AppointmentBooking() {
 
       setSlots(data);
     } catch (error) {
-      console.error(error);
+      console.error(
+        "Failed to fetch slots:",
+        error
+      );
     }
   };
 
@@ -63,6 +113,16 @@ export default function AppointmentBooking() {
       const user = JSON.parse(
         localStorage.getItem("user") || "{}"
       );
+
+      if (
+        !selectedCounsellor ||
+        !selectedSlot
+      ) {
+        alert(
+          "Please select a counsellor and slot"
+        );
+        return;
+      }
 
       const response = await fetch(
         "http://localhost:5050/api/counsellors/book",
@@ -87,11 +147,14 @@ export default function AppointmentBooking() {
         );
       }
 
-      alert("Booking successful");
+      alert("Appointment booked successfully!");
 
       setSelectedSlot("");
 
-      fetchAppointments();
+      await fetchAppointments();
+      await loadSlots(
+        selectedCounsellor
+      );
     } catch (error) {
       console.error(error);
       alert("Booking failed");
@@ -100,15 +163,15 @@ export default function AppointmentBooking() {
 
   return (
     <div className="space-y-8">
-      {/* Booking Form */}
+      {/* Counsellor Dropdown */}
 
       <div>
-        <label className="font-bold">
+        <label className="block font-semibold mb-2">
           Select Counsellor
         </label>
 
         <select
-          className="w-full border rounded-xl p-3 mt-2"
+          className="w-full border border-gray-300 rounded-xl p-3"
           value={selectedCounsellor}
           onChange={(e) =>
             loadSlots(e.target.value)
@@ -118,25 +181,32 @@ export default function AppointmentBooking() {
             Choose Counsellor
           </option>
 
-          {counsellors.map((c: any) => (
-            <option
-              key={c.id}
-              value={c.id}
-            >
-              {c.name} -{" "}
-              {c.specialization}
-            </option>
-          ))}
+          {counsellors.map(
+            (counsellor) => (
+              <option
+                key={counsellor.id}
+                value={counsellor.id}
+              >
+                {counsellor.name} (
+                {
+                  counsellor.specialization
+                }
+                )
+              </option>
+            )
+          )}
         </select>
       </div>
 
+      {/* Slot Dropdown */}
+
       <div>
-        <label className="font-bold">
+        <label className="block font-semibold mb-2">
           Available Slots
         </label>
 
         <select
-          className="w-full border rounded-xl p-3 mt-2"
+          className="w-full border border-gray-300 rounded-xl p-3"
           value={selectedSlot}
           onChange={(e) =>
             setSelectedSlot(
@@ -148,85 +218,72 @@ export default function AppointmentBooking() {
             Select Slot
           </option>
 
-          {slots.map((slot: any) => (
+          {slots.map((slot) => (
             <option
               key={slot.id}
               value={slot.id}
             >
-              {slot.available_date} |{" "}
-              {slot.start_time} -{" "}
+              {slot.available_date}
+              {" | "}
+              {slot.start_time}
+              {" - "}
               {slot.end_time}
             </option>
           ))}
         </select>
       </div>
 
+      {/* Book Button */}
+
       <button
-        className="bg-blue-600 text-white px-6 py-3 rounded-xl"
         onClick={handleBook}
+        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-semibold"
       >
         Book Appointment
       </button>
 
-      {/* Appointment Table */}
+      {/* History */}
 
-      <div>
+      <div className="mt-10">
         <h2 className="text-2xl font-bold mb-4">
-          Appointment History
+          My Appointments
         </h2>
 
-        <div className="overflow-x-auto">
-          <table className="w-full border border-gray-300">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="border p-3">
-                  ID
-                </th>
-                <th className="border p-3">
-                  Counsellor
-                </th>
-                <th className="border p-3">
-                  Specialization
-                </th>
-                <th className="border p-3">
-                  Date
-                </th>
-                <th className="border p-3">
-                  Start Time
-                </th>
-                <th className="border p-3">
-                  End Time
-                </th>
-                <th className="border p-3">
-                  Booked At
-                </th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {appointments.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="border p-4 text-center"
-                  >
-                    No appointments found
-                  </td>
+        {appointments.length === 0 ? (
+          <div className="bg-gray-100 rounded-xl p-6 text-center text-gray-600">
+            No appointments found.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full border border-gray-200">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="p-3 border">
+                    Counsellor
+                  </th>
+                  <th className="p-3 border">
+                    Specialization
+                  </th>
+                  <th className="p-3 border">
+                    Date
+                  </th>
+                  <th className="p-3 border">
+                    Time
+                  </th>
+                  <th className="p-3 border">
+                    Booked At
+                  </th>
                 </tr>
-              ) : (
-                appointments.map(
-                  (appointment: any) => (
+              </thead>
+
+              <tbody>
+                {appointments.map(
+                  (appointment) => (
                     <tr
                       key={appointment.id}
                     >
                       <td className="border p-3">
-                        {appointment.id}
-                      </td>
-
-                      <td className="border p-3">
-                        {
-                          appointment.counsellor_name
-                        }
+                        {appointment.name}
                       </td>
 
                       <td className="border p-3">
@@ -245,9 +302,7 @@ export default function AppointmentBooking() {
                         {
                           appointment.start_time
                         }
-                      </td>
-
-                      <td className="border p-3">
+                        {" - "}
                         {
                           appointment.end_time
                         }
@@ -260,11 +315,11 @@ export default function AppointmentBooking() {
                       </td>
                     </tr>
                   )
-                )
-              )}
-            </tbody>
-          </table>
-        </div>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
