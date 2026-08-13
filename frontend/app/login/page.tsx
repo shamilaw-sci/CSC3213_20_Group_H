@@ -42,9 +42,15 @@ export default function LoginPage() {
           role: data.role,
         }),
       );
+      localStorage.setItem("role", data.role);
 
-      // Successfully logged in
-      router.replace("/dashboard");
+      const role = String(data.role || "").toLowerCase();
+
+      if (role === "admin" || role === "supervisor") {
+        window.location.href = "/admin/dashboard";
+      } else {
+        window.location.href = "/dashboard";
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -58,12 +64,9 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const res = await fetch(
-        `${API_BASE_URL}/api/auth/register/anonymous`,
-        {
-          method: "POST",
-        },
-      );
+      const res = await fetch(`${API_BASE_URL}/api/auth/register/anonymous`, {
+        method: "POST",
+      });
 
       const data = await res.json();
 
@@ -192,7 +195,6 @@ export default function LoginPage() {
             >
               Continue with Google
             </button>
-
           </form>
 
           <div className="mt-8 text-center text-sm text-zinc-500 dark:text-zinc-400">

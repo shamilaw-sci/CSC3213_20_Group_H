@@ -22,7 +22,7 @@ async function seed() {
         name: "System Admin",
         email: "admin@carebridge.com",
         password: "admin123",
-        role: "Admin",
+        role: "admin",
       },
       {
         name: "Test Student",

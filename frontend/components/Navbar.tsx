@@ -11,15 +11,40 @@ const nunito = Nunito({
 
 export default function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
     setIsLoggedIn(!!token);
+
+    const savedRole = localStorage.getItem("role");
+    if (savedRole) {
+      const normalizedRole = savedRole.toLowerCase();
+      if (normalizedRole === "admin" || normalizedRole === "supervisor") {
+        setIsAdmin(true);
+        return;
+      }
+    }
+
+    try {
+      const savedUser = JSON.parse(localStorage.getItem("user") || "{}");
+      const userRole = savedUser?.role;
+      if (
+        userRole &&
+        (String(userRole).toLowerCase() === "admin" ||
+          String(userRole).toLowerCase() === "supervisor")
+      ) {
+        setIsAdmin(true);
+      }
+    } catch {
+      // ignore malformed user storage
+    }
   }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    localStorage.removeItem("role");
     window.location.href = "/login";
   };
 
@@ -47,6 +72,17 @@ export default function Navbar() {
         <li>
           <Link href="/contact">Contact</Link>
         </li>
+
+        {isAdmin && (
+          <li>
+            <Link
+              href="/admin/dashboard"
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-sm transition-all"
+            >
+              Admin Dashboard
+            </Link>
+          </li>
+        )}
 
         {isLoggedIn ? (
           <>

@@ -6,9 +6,10 @@ CREATE TABLE IF NOT EXISTS users (
     name VARCHAR(255),
     email VARCHAR(255) UNIQUE,
     password VARCHAR(255),
-    role VARCHAR(50) NOT NULL DEFAULT 'Student',
+    role ENUM('student', 'counsellor', 'admin', 'supervisor', 'anonymous') NOT NULL DEFAULT 'student',
     anonymousId VARCHAR(100),
     isAnonymous BOOLEAN NOT NULL DEFAULT FALSE,
+    is_suspended BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -22,4 +23,24 @@ CREATE TABLE IF NOT EXISTS emergencies (
     status VARCHAR(50) NOT NULL DEFAULT 'Pending_Acknowledgment',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (student_id) REFERENCES users(id)
+);
+
+-- Ensure counsellor profiles exist for verification workflow
+CREATE TABLE IF NOT EXISTS counsellor_profiles (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    verification_status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+    document_url VARCHAR(255),
+    is_available BOOLEAN DEFAULT TRUE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Ensure system reports log exists
+CREATE TABLE IF NOT EXISTS system_reports (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    generated_by INT,
+    report_type ENUM('PDF', 'CSV'),
+    title VARCHAR(150),
+    file_path VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
