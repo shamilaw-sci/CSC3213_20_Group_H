@@ -42,6 +42,7 @@ export default function LoginPage() {
           role: data.role,
         }),
       );
+      localStorage.setItem("role", data.role);
 
       const role = String(data.role || "").toLowerCase();
 

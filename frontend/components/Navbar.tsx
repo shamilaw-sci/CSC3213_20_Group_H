@@ -15,14 +15,29 @@ export default function Navbar() {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    const role = localStorage.getItem("role");
     setIsLoggedIn(!!token);
 
-    if (
-      role &&
-      (role.toLowerCase() === "admin" || role.toLowerCase() === "supervisor")
-    ) {
-      setIsAdmin(true);
+    const savedRole = localStorage.getItem("role");
+    if (savedRole) {
+      const normalizedRole = savedRole.toLowerCase();
+      if (normalizedRole === "admin" || normalizedRole === "supervisor") {
+        setIsAdmin(true);
+        return;
+      }
+    }
+
+    try {
+      const savedUser = JSON.parse(localStorage.getItem("user") || "{}");
+      const userRole = savedUser?.role;
+      if (
+        userRole &&
+        (String(userRole).toLowerCase() === "admin" ||
+          String(userRole).toLowerCase() === "supervisor")
+      ) {
+        setIsAdmin(true);
+      }
+    } catch {
+      // ignore malformed user storage
     }
   }, []);
 
