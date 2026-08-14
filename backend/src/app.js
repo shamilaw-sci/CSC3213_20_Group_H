@@ -37,6 +37,10 @@ app.get('/', (req, res) => {
 const authRoutes = require("./routes/authRoutes");
 app.use("/api/auth", authRoutes);
 
+// Dashboard Routes
+const dashboardRoutes = require("./routes/dashboard");
+app.use("/api/dashboard", dashboardRoutes);
+
 app.post("/api/logs", (req, res) => {
   const {
     message,

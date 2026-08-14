@@ -1,4 +1,39 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
 export default function WelcomeBanner() {
+  const [userName, setUserName] = useState("Student");
+  const [greeting, setGreeting] = useState("Good morning");
+
+  useEffect(() => {
+    // Get logged-in user's name
+    const userData = localStorage.getItem("user");
+
+    if (userData) {
+      try {
+        const user = JSON.parse(userData);
+
+        if (user.name) {
+          setUserName(user.name);
+        }
+      } catch (error) {
+        console.error("Unable to read user information:", error);
+      }
+    }
+
+    // Get current time
+    const hour = new Date().getHours();
+
+    if (hour >= 5 && hour < 12) {
+      setGreeting("Good morning");
+    } else if (hour >= 12 && hour < 17) {
+      setGreeting("Good afternoon");
+    } else {
+      setGreeting("Good evening");
+    }
+  }, []);
+
   return (
     <section className="mb-8 rounded-3xl bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 text-white p-6 md:p-8 shadow-lg">
       <div className="flex items-center justify-between gap-6">
@@ -8,7 +43,7 @@ export default function WelcomeBanner() {
           </p>
 
           <h2 className="text-3xl md:text-4xl font-bold">
-            Good morning, Hirushi 👋
+            {greeting}, {userName} 👋
           </h2>
 
           <p className="mt-3 text-blue-50 max-w-xl leading-relaxed">

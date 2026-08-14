@@ -38,7 +38,13 @@ export default function AuthGuard({
       );
 
       // Remove token from URL
-      router.replace("/student/dashboard");
+      if (googleRole?.toLowerCase() === "admin") {
+        router.replace("/admin/dashboard");
+      } else if (googleRole?.toLowerCase() === "counsellor") {
+        router.replace("/counsellor/dashboard");
+      } else {
+        router.replace("/student/dashboard");
+      }
 
       return;
     }
@@ -72,8 +78,12 @@ export default function AuthGuard({
       ) {
         if (userRole === "student") {
           router.replace("/student/dashboard");
+        } else if (userRole === "counsellor") {
+          router.replace("/counsellor/dashboard");
+        } else if (userRole === "admin") {
+          router.replace("/admin/dashboard");
         } else {
-          router.replace("/dashboard");
+          router.replace("/login");
         }
 
         return;
