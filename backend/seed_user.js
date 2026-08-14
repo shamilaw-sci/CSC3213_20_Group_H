@@ -1,64 +1,28 @@
-const bcrypt = require('bcrypt');
-const mysql = require('mysql2/promise');
-require('dotenv').config();
+import bcrypt from 'bcrypt';
+import mysql from 'mysql2/promise';
+import dotenv from 'dotenv';
+dotenv.config();
 
 async function seed() {
   try {
     console.log("Connecting to MySQL...");
 
-    // Create database if it doesn't exist
-    const tempPool = mysql.createPool({
-      host: process.env.DB_HOST || 'localhost',
-      user: process.env.DB_USER || 'root',
-      password: process.env.DB_PASSWORD || '',
-    });
-
-    await tempPool.query('CREATE DATABASE IF NOT EXISTS `mind_ease_db`');
-
-    // Connect to the database
+    // Schema is created by backend/db/init/*.sql when the Docker MySQL
+    // container first starts (see docker-compose.yml). This script only seeds data.
     const pool = mysql.createPool({
       host: process.env.DB_HOST || 'localhost',
+      port: process.env.DB_PORT || 3306,
       user: process.env.DB_USER || 'root',
       password: process.env.DB_PASSWORD || '',
       database: process.env.DB_NAME || 'mind_ease_db',
     });
-
-    console.log("Creating users table if it doesn't exist...");
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS users (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        name VARCHAR(255),
-        email VARCHAR(255) NOT NULL UNIQUE,
-        password VARCHAR(255) NOT NULL,
-        role VARCHAR(50) DEFAULT 'Student',
-        anonymousId VARCHAR(100),
-        isAnonymous BOOLEAN DEFAULT FALSE
-      )
-    `);
-
-    // Add name column only if it does not already exist
-    const [columns] = await pool.query(`
-      SHOW COLUMNS FROM users LIKE 'name'
-    `);
-
-    if (columns.length === 0) {
-      await pool.query(`
-        ALTER TABLE users
-        ADD COLUMN name VARCHAR(255) AFTER id
-      `);
-
-      console.log("✅ Added name column");
-    } else {
-      console.log("✅ Name column already exists");
-    }
 
     const users = [
       {
         name: "System Admin",
         email: "admin@carebridge.com",
         password: "admin123",
-        role: "Admin",
+        role: "admin",
       },
       {
         name: "Test Student",
@@ -106,7 +70,6 @@ async function seed() {
     console.log("=========================================");
 
     await pool.end();
-    await tempPool.end();
 
     process.exit(0);
   } catch (error) {
