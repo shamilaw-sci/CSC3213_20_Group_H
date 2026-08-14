@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Calendar,
+  MessageCircle,
   ChevronDown,
   Clock,
   History,
@@ -67,6 +68,12 @@ export default function Navbar() {
         {isLoggedIn && (
           <nav className="hidden lg:flex items-center gap-1 text-xs font-semibold text-gray-600">
             <Link
+              href="/chat"
+              className="px-3 py-1.5 rounded-lg hover:text-indigo-600 hover:bg-gray-50 transition-all flex items-center gap-1.5"
+            >
+              <MessageCircle size={14} /> Chat
+            </Link>
+            <Link
               href="/dashboard"
               className="px-3 py-1.5 rounded-lg hover:text-indigo-600 hover:bg-gray-50 transition-all flex items-center gap-1.5"
             >
@@ -79,7 +86,7 @@ export default function Navbar() {
               <Calendar size={14} /> Booking
             </Link>
             <Link
-              href="/availabilty"
+              href="/availability"
               className="px-3 py-1.5 rounded-lg hover:text-indigo-600 hover:bg-gray-50 transition-all flex items-center gap-1.5"
             >
               <Clock size={14} /> Availability
