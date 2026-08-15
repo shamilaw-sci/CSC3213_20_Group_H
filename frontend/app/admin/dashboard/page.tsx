@@ -75,6 +75,20 @@ export default function AdminDashboard() {
   }, []);
 
   // =====================================================
+  // DYNAMIC GREETING
+  // =====================================================
+
+  const currentHour = new Date().getHours();
+
+  let greeting = "Good evening";
+
+  if (currentHour < 12) {
+    greeting = "Good morning";
+  } else if (currentHour < 17) {
+    greeting = "Good afternoon";
+  }
+
+  // =====================================================
   // STATISTICS
   // =====================================================
 
@@ -322,7 +336,7 @@ export default function AdminDashboard() {
             </p>
 
             <h2 className="text-3xl md:text-4xl font-bold text-gray-800">
-              Good morning, Admin 👋
+              {greeting}, Admin 👋
             </h2>
 
             <p className="text-gray-500 mt-2">
@@ -336,6 +350,7 @@ export default function AdminDashboard() {
 
           {error && (
             <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700">
+
               <p className="font-medium">
                 Unable to load dashboard
               </p>
@@ -343,6 +358,7 @@ export default function AdminDashboard() {
               <p className="text-sm mt-1">
                 {error}
               </p>
+
             </div>
           )}
 

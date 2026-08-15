@@ -4,10 +4,10 @@ import { useEffect, useState } from "react";
 
 export default function WelcomeBanner() {
   const [userName, setUserName] = useState("Student");
+  const [isAnonymous, setIsAnonymous] = useState(false);
   const [greeting, setGreeting] = useState("Good morning");
 
   useEffect(() => {
-    // Get logged-in user's name
     const userData = localStorage.getItem("user");
 
     if (userData) {
@@ -17,21 +17,32 @@ export default function WelcomeBanner() {
         if (user.name) {
           setUserName(user.name);
         }
+
+        if (user.isAnonymous === true) {
+          setIsAnonymous(true);
+          setUserName(user.name || "Anonymous User");
+        }
       } catch (error) {
-        console.error("Unable to read user information:", error);
+        console.error(
+          "Unable to read user information:",
+          error
+        );
       }
     }
 
-    // Get current time
-    const hour = new Date().getHours();
+    const updateGreeting = () => {
+      const hour = new Date().getHours();
 
-    if (hour >= 5 && hour < 12) {
-      setGreeting("Good morning");
-    } else if (hour >= 12 && hour < 17) {
-      setGreeting("Good afternoon");
-    } else {
-      setGreeting("Good evening");
-    }
+      if (hour >= 5 && hour < 12) {
+        setGreeting("Good morning");
+      } else if (hour >= 12 && hour < 17) {
+        setGreeting("Good afternoon");
+      } else {
+        setGreeting("Good evening");
+      }
+    };
+
+    updateGreeting();
   }, []);
 
   return (
@@ -47,8 +58,9 @@ export default function WelcomeBanner() {
           </h2>
 
           <p className="mt-3 text-blue-50 max-w-xl leading-relaxed">
-            Take a moment to check in with yourself and keep taking care of
-            your wellbeing.
+            {isAnonymous
+              ? "You're using CareBridge anonymously. You can explore support and wellbeing services without creating a personal profile."
+              : "Take a moment to check in with yourself and keep taking care of your wellbeing."}
           </p>
         </div>
 

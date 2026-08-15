@@ -1,24 +1,47 @@
-export default function DashboardStats() {
+"use client";
+
+interface DashboardStatsProps {
+  assessmentCompleted: boolean;
+  assessmentName?: string;
+  wellbeingStatus?: string;
+  appointmentDate?: string;
+  appointmentTime?: string;
+}
+
+export default function DashboardStats({
+  assessmentCompleted,
+  assessmentName,
+  wellbeingStatus,
+  appointmentDate,
+  appointmentTime,
+}: DashboardStatsProps) {
   const stats = [
     {
       icon: "📝",
       title: "Assessment",
-      value: "Completed",
-      description: "Latest: PHQ-9",
+      value: assessmentCompleted ? "Completed" : "Not completed",
+      description: assessmentCompleted
+        ? `Latest: ${assessmentName || "Assessment"}`
+        : "Take an assessment",
       color: "blue",
     },
     {
       icon: "😊",
       title: "Wellbeing",
-      value: "Stable",
-      description: "Keep taking care!",
+      value: wellbeingStatus || "Not assessed",
+      description: assessmentCompleted
+        ? "Based on your latest assessment"
+        : "Complete an assessment",
       color: "green",
     },
     {
       icon: "📅",
       title: "Next Appointment",
-      value: "Aug 12",
-      description: "10:00 AM",
+      value: appointmentDate || "None",
+      description:
+        appointmentDate && appointmentTime
+          ? appointmentTime
+          : "No upcoming appointment",
       color: "cyan",
     },
     {

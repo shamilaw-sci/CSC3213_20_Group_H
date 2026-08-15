@@ -1,4 +1,19 @@
-export default function RecentAssessment() {
+"use client";
+
+import Link from "next/link";
+
+interface RecentAssessmentProps {
+  assessment: {
+    name?: string;
+    date?: string;
+    severity?: string;
+    description?: string;
+  } | null;
+}
+
+export default function RecentAssessment({
+  assessment,
+}: RecentAssessmentProps) {
   return (
     <section className="bg-white rounded-2xl border border-blue-100 p-6 shadow-sm hover:shadow-md transition-shadow">
       <div className="flex items-center justify-between mb-6">
@@ -11,30 +26,35 @@ export default function RecentAssessment() {
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
+      {assessment ? (
         <div>
           <h4 className="text-lg font-semibold text-gray-800">
-            PHQ-9 Assessment
+            {assessment.name || "Assessment"}
           </h4>
 
-          <p className="text-sm text-gray-500 mt-1">
-            Completed on Aug 5, 2026
-          </p>
+          {assessment.date && (
+            <p className="text-sm text-gray-500 mt-1">
+              Completed on {assessment.date}
+            </p>
+          )}
 
-          {/* Assessment Status */}
-          <span className="inline-flex items-center gap-2 mt-4 px-3 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-100 text-sm font-medium">
-            <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-            Moderate
-          </span>
+          {assessment.severity && (
+            <span className="inline-flex items-center gap-2 mt-4 px-3 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-100 text-sm font-medium">
+              <span className="w-2 h-2 rounded-full bg-amber-500" />
+              {assessment.severity}
+            </span>
+          )}
 
-          <p className="text-gray-600 mt-4 leading-relaxed">
-            Your assessment indicates moderate symptoms. Consider checking in
-            with a mental health professional.
-          </p>
+          {assessment.description && (
+            <p className="text-gray-600 mt-4 leading-relaxed">
+              {assessment.description}
+            </p>
+          )}
 
-          <button
-            type="button"
+          <Link
+            href="/student/results"
             className="
+              inline-block
               mt-5
               px-5
               py-2.5
@@ -45,14 +65,45 @@ export default function RecentAssessment() {
               hover:bg-blue-50
               hover:border-blue-300
               transition-all
-              duration-200
               font-medium
             "
           >
             View Results →
-          </button>
+          </Link>
         </div>
-      </div>
+      ) : (
+        <div className="text-center py-6">
+          <div className="w-16 h-16 mx-auto rounded-2xl bg-blue-50 flex items-center justify-center text-3xl mb-4">
+            📝
+          </div>
+
+          <h4 className="text-lg font-semibold text-gray-800">
+            No assessment completed yet
+          </h4>
+
+          <p className="text-sm text-gray-500 mt-2">
+            Complete an assessment to understand your current wellbeing.
+          </p>
+
+          <Link
+            href="/student/assessments"
+            className="
+              inline-block
+              mt-5
+              px-5
+              py-2.5
+              rounded-xl
+              bg-blue-600
+              text-white
+              hover:bg-blue-700
+              transition-colors
+              font-semibold
+            "
+          >
+            Take Assessment →
+          </Link>
+        </div>
+      )}
     </section>
   );
 }

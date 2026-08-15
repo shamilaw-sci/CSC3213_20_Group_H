@@ -121,78 +121,83 @@ export default function LoginPage() {
   // =========================================================
 
   const handleAnonymousLogin = async () => {
-    setError("");
-    setLoading(true);
+  setError("");
+  setLoading(true);
 
-    try {
-      const res = await fetch(
-        "http://localhost:5000/api/auth/register/anonymous",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      const data = await res.json();
-
-      console.log("Anonymous response:", data);
-
-      if (!res.ok) {
-        throw new Error(
-          data.message || "Anonymous login failed"
-        );
+  try {
+    const res = await fetch(
+      "http://localhost:5000/api/auth/register/anonymous",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
       }
+    );
 
-      if (!data.token) {
-        throw new Error(
-          "No token received from server."
-        );
-      }
+    const data = await res.json();
 
-      localStorage.setItem(
-        "token",
-        data.token
-      );
+    console.log("Anonymous response:", data);
 
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          id:
-            data.anonymousId ||
-            data.userId ||
-            data.user?.id,
-          name:
-            data.user?.name ||
-            "Anonymous User",
-          email:
-            data.user?.email || null,
-          role:
-            data.role ||
-            data.user?.role ||
-            "student",
-          isAnonymous: true,
-        })
+    if (!res.ok) {
+      throw new Error(
+        data.message || "Anonymous login failed"
       );
-
-      router.replace(
-        "/student/dashboard"
-      );
-    } catch (error: any) {
-      console.error(
-        "Anonymous login error:",
-        error
-      );
-
-      setError(
-        error.message ||
-          "Anonymous login failed"
-      );
-    } finally {
-      setLoading(false);
     }
-  };
+
+    if (!data.token) {
+      throw new Error(
+        "No token received from server."
+      );
+    }
+
+    const anonymousUser = {
+      id: data.user?.id,
+      anonymousId: data.user?.anonymousId,
+      name:
+        data.user?.name ||
+        "Anonymous User",
+      email: null,
+      role: String(
+        data.user?.role ||
+          "student"
+      ).toLowerCase(),
+      isAnonymous: true,
+    };
+
+    localStorage.setItem(
+      "token",
+      data.token
+    );
+
+    localStorage.setItem(
+      "user",
+      JSON.stringify(anonymousUser)
+    );
+
+    console.log(
+      "Anonymous user saved:",
+      anonymousUser
+    );
+
+    router.replace(
+      "/student/dashboard"
+    );
+
+  } catch (error: any) {
+    console.error(
+      "Anonymous login error:",
+      error
+    );
+
+    setError(
+      error?.message ||
+        "Anonymous login failed"
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   // =========================================================
   // GOOGLE LOGIN
