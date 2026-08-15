@@ -28,7 +28,7 @@ const Info = () => {
             </div>
 
             <div className="rounded-2xl border p-8 shadow-sm hover:shadow-lg transition">
-              <h3 className="text-2xl font-bold mb-4">💙 Find Support</h3>
+              <h3 className="text-2xl font-bold mb-4">Find Support</h3>
               <p className="text-gray-600">
                 Access helpful resources and connect with university counselling
                 services whenever you need them.

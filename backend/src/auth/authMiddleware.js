@@ -1,11 +1,11 @@
 import jwt from "jsonwebtoken";
-import { SECRET } from "../config.js"; // ✅ Fixed: uses shared config, no hardcoded fallback
+import { SECRET } from "../config.js";
 
 export const authMiddleware = (req, res, next) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader) {
-    return res.status(401).json({ message: "No token" });
+    return res.status(401).json({ message: "No token provided" });
   }
 
   const token = authHeader.split(" ")[1];
