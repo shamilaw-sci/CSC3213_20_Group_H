@@ -19,4 +19,22 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Get JWT token
+export const getToken = (): string | null => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return localStorage.getItem("token");
+};
+
+// Logout
+export const logout = (): void => {
+  if (typeof window !== "undefined") {
+    localStorage.removeItem("token");
+    localStorage.removeItem("userId");
+    localStorage.removeItem("role");
+  }
+};
+
 export default api;
