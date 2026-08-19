@@ -64,7 +64,7 @@ export default function StudentSidebar() {
         w-64
         min-h-[calc(100vh-64px)]
         bg-white
-        border-r border-blue-100
+        border-r border-[#d5ebe8]
         p-5
         flex-col
         sticky top-16
@@ -75,7 +75,7 @@ export default function StudentSidebar() {
       ====================================================== */}
 
       <div className="mb-8 px-2">
-        <h1 className="text-2xl font-extrabold text-blue-600">
+        <h1 className="text-2xl font-extrabold text-[#2f7f78]">
           CareBridge
         </h1>
 
