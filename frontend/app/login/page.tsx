@@ -93,16 +93,18 @@ export default function LoginPage() {
         JSON.stringify(user)
       );
 
+      localStorage.setItem("role", userRole);
+
       console.log("Saved user:", user);
 
       if (userRole === "student") {
-        router.replace("/student/dashboard");
+        window.location.href = "/student/dashboard";
       } else if (userRole === "counsellor") {
-        router.replace("/counsellor/dashboard");
+        window.location.href = "/counsellor/dashboard";
       } else if (userRole === "admin") {
-        router.replace("/admin/dashboard");
+        window.location.href = "/admin/dashboard";
       } else {
-        router.replace("/dashboard");
+        window.location.href = "/dashboard";
       }
     } catch (err: any) {
       console.error("Login error:", err);
@@ -174,6 +176,8 @@ export default function LoginPage() {
       "user",
       JSON.stringify(anonymousUser)
     );
+
+    localStorage.setItem("role", anonymousUser.role);
 
     console.log(
       "Anonymous user saved:",

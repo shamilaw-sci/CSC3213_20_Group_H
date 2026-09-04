@@ -1,7 +1,7 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 import db from "../config/db.js";
 
 // =====================================================
@@ -255,6 +255,7 @@ export const anonymousLogin = async (req, res) => {
 // =====================================================
 
 export const forgotPassword = async (req, res) => {
+
     const { email } = req.body;
 
     if (!email) {
@@ -297,7 +298,6 @@ export const forgotPassword = async (req, res) => {
             crypto.randomBytes(32).toString("hex");
 
         // Token expires after 15 minutes
-
         const expiry =
             new Date(Date.now() + 15 * 60 * 1000);
 
@@ -325,135 +325,92 @@ export const forgotPassword = async (req, res) => {
             `http://localhost:3000/reset-password?token=${resetToken}`;
 
         // -------------------------------------------------
-        // Check Resend API key
+        // Create Gmail transporter
         // -------------------------------------------------
 
-        if (!process.env.RESEND_API_KEY) {
-            console.error(
-                "RESEND_API_KEY is missing from .env"
-            );
-
-            return res.status(500).json({
-                message:
-                    "Email service is not configured."
-            });
-        }
-
-        // -------------------------------------------------
-        // Create Resend client
-        // -------------------------------------------------
-
-        const resend =
-            new Resend(
-                process.env.RESEND_API_KEY
-            );
+        const transporter = nodemailer.createTransport({
+            service: "gmail",
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_APP_PASSWORD,
+            },
+        });
 
         // -------------------------------------------------
         // Send password reset email
         // -------------------------------------------------
 
-        const { data, error } =
-            await resend.emails.send({
-                from:
-                    "CareBridge <onboarding@resend.dev>",
+        await transporter.sendMail({
+            from: `"CareBridge" <${process.env.EMAIL_USER}>`,
+            to: user.email,
+            subject: "CareBridge Password Reset",
 
-                to: [user.email],
+            html: `
+                <div style="
+                    font-family: Arial, sans-serif;
+                    max-width: 600px;
+                    margin: auto;
+                    padding: 30px;
+                ">
 
-                subject:
-                    "CareBridge Password Reset",
+                    <h2 style="color: #2563eb;">
+                        CareBridge
+                    </h2>
 
-                html: `
-                    <div
-                        style="
-                            font-family: Arial, sans-serif;
-                            max-width: 600px;
-                            margin: auto;
-                            padding: 30px;
-                        "
-                    >
+                    <p>
+                        Hello ${user.name || "there"},
+                    </p>
 
-                        <h2
+                    <p>
+                        We received a request to reset
+                        your CareBridge password.
+                    </p>
+
+                    <p>
+                        Click the button below to create
+                        a new password:
+                    </p>
+
+                    <div style="margin: 30px 0;">
+
+                        <a
+                            href="${resetUrl}"
                             style="
-                                color: #2563eb;
+                                display: inline-block;
+                                padding: 12px 24px;
+                                background: #2563eb;
+                                color: white;
+                                text-decoration: none;
+                                border-radius: 8px;
+                                font-weight: bold;
                             "
                         >
-                            CareBridge
-                        </h2>
-
-                        <p>
-                            Hello ${user.name || "there"},
-                        </p>
-
-                        <p>
-                            We received a request to reset
-                            your CareBridge password.
-                        </p>
-
-                        <p>
-                            Click the button below to create
-                            a new password:
-                        </p>
-
-                        <div
-                            style="
-                                margin: 30px 0;
-                            "
-                        >
-
-                            <a
-                                href="${resetUrl}"
-                                style="
-                                    display:inline-block;
-                                    padding:12px 24px;
-                                    background:#2563eb;
-                                    color:white;
-                                    text-decoration:none;
-                                    border-radius:8px;
-                                    font-weight:bold;
-                                "
-                            >
-                                Reset Password
-                            </a>
-
-                        </div>
-
-                        <p>
-                            This link will expire in
-                            <strong>15 minutes</strong>.
-                        </p>
-
-                        <p>
-                            If you did not request a password
-                            reset, you can safely ignore this email.
-                        </p>
-
-                        <p>
-                            ΓÇö CareBridge Team
-                        </p>
+                            Reset Password
+                        </a>
 
                     </div>
-                `
-            });
 
-        // -------------------------------------------------
-        // Check Resend error
-        // -------------------------------------------------
+                    <p>
+                        This link will expire in
+                        <strong>15 minutes</strong>.
+                    </p>
 
-        if (error) {
-            console.error(
-                "Resend email error:",
-                error
-            );
+                    <p>
+                        If you did not request a password
+                        reset, you can safely ignore this email.
+                    </p>
 
-            return res.status(500).json({
-                message:
-                    "Unable to send password reset email."
-            });
-        }
+                    <p>
+                        — CareBridge Team
+                    </p>
+
+                </div>
+            `,
+        });
 
         console.log(
-            "Password reset email sent:",
-            data
+            "Password reset email sent to:",
+            user.email
         );
 
         // -------------------------------------------------

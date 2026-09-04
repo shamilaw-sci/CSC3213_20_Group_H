@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import AuthGuard from "@/components/AuthGuard";
-import Navbar from "@/components/Navbar";
 
 import StudentSidebar from "@/components/student/StudentSidebar";
 import WelcomeBanner from "@/components/student/WelcomeBanner";
@@ -223,7 +222,6 @@ export default function StudentDashboard() {
     <AuthGuard allowedRoles={["student"]}>
       <div className="min-h-screen bg-[#f4fbfa]">
 
-        <Navbar />
 
         <div className="flex">
 
