@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -13,46 +13,9 @@ export default function AuthGuard({
   allowedRoles,
 }: AuthGuardProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-
   const [authorized, setAuthorized] = useState(false);
 
   useEffect(() => {
-    // --------------------------------------------------
-    // 1. Check if Google redirected here with a token
-    // --------------------------------------------------
-
-    const googleToken = searchParams.get("token");
-    const googleUserId = searchParams.get("userId");
-    const googleRole = searchParams.get("role");
-
-    if (googleToken) {
-      localStorage.setItem("token", googleToken);
-
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          id: googleUserId,
-          role: googleRole?.toLowerCase() || "student",
-        }),
-      );
-
-      // Remove token from URL
-      if (googleRole?.toLowerCase() === "admin") {
-        router.replace("/admin/dashboard");
-      } else if (googleRole?.toLowerCase() === "counsellor") {
-        router.replace("/counsellor/dashboard");
-      } else {
-        router.replace("/student/dashboard");
-      }
-
-      return;
-    }
-
-    // --------------------------------------------------
-    // 2. Normal login / anonymous login
-    // --------------------------------------------------
-
     const token = localStorage.getItem("token");
     const userData = localStorage.getItem("user");
 
@@ -64,45 +27,21 @@ export default function AuthGuard({
     try {
       const user = JSON.parse(userData);
 
-      const userRole = String(user.role || "").toLowerCase();
-
-      // --------------------------------------------------
-      // 3. Check allowed role
-      // --------------------------------------------------
-
       if (
         allowedRoles &&
-        !allowedRoles
-          .map((role) => role.toLowerCase())
-          .includes(userRole)
+        !allowedRoles.includes(user.role)
       ) {
-        if (userRole === "student") {
-          router.replace("/student/dashboard");
-        } else if (userRole === "counsellor") {
-          router.replace("/counsellor/dashboard");
-        } else if (userRole === "admin") {
-          router.replace("/admin/dashboard");
-        } else {
-          router.replace("/login");
-        }
-
+        router.replace("/dashboard");
         return;
       }
 
-      // --------------------------------------------------
-      // 4. User is authorized
-      // --------------------------------------------------
-
       setAuthorized(true);
     } catch (error) {
-      console.error("Auth error:", error);
-
       localStorage.removeItem("token");
       localStorage.removeItem("user");
-
       router.replace("/login");
     }
-  }, [router, allowedRoles, searchParams]);
+  }, [router, allowedRoles]);
 
   if (!authorized) {
     return (

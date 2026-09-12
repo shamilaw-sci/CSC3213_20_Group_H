@@ -12,7 +12,6 @@ export const logout = () => {
   if (typeof window === "undefined") return;
   localStorage.removeItem("token");
   localStorage.removeItem("user");
-  localStorage.removeItem("userId");
   localStorage.removeItem("role");
 };
 
@@ -27,7 +26,7 @@ api.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
     const token = localStorage.getItem("token");
     if (token) {
-      config.headers.Authorization = "B" + "earer " + token;
+      config.headers.Authorization = `Bearer ${token}`;
     }
   }
   return config;

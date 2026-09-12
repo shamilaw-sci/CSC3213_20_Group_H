@@ -2,6 +2,7 @@
 import Hero from "@/components/Hero";
 import Info from "@/components/Info";
 import { useRouter } from "next/navigation";
+import { API_BASE_URL } from "@/services/api";
 
 export default function HomePage() {
   const router = useRouter();
@@ -9,7 +10,7 @@ export default function HomePage() {
   const handleAnonymousLogin = async () => {
     try {
       const response = await fetch(
-        "http://localhost:5000/api/auth/register/anonymous",
+        `${API_BASE_URL}/api/auth/register/anonymous`,
         {
           method: "POST",
           headers: {
@@ -25,7 +26,7 @@ export default function HomePage() {
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
 
-        router.push("/student/dashboard");
+        router.push("/dashboard");
       } else {
         alert(data.message);
       }

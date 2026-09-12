@@ -3,12 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Nunito } from "next/font/google";
-
-const nunito = Nunito({
-  subsets: ["latin"],
-  weight: ["400", "600", "700", "800"],
-});
+import { API_BASE_URL } from "../../services/api";
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
@@ -18,16 +13,10 @@ export default function RegisterPage() {
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
   const router = useRouter();
-
-  // =========================================================
-  // REGISTER
-  // =========================================================
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-
     setError("");
 
     if (password.length < 8) {
@@ -43,411 +32,198 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const res = await fetch(
-        "http://localhost:5000/api/auth/register",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            name,
-            email,
-            password,
-          }),
-        }
-      );
+      const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password }),
+      });
 
       const data = await res.json();
 
-      console.log("Register response:", data);
-
       if (!res.ok) {
         throw new Error(
-          data.message ||
-            "Registration failed. Please try again."
+          data.message || "Registration failed. Please try again.",
         );
       }
 
-      if (!data.token) {
-        throw new Error(
-          "Registration successful, but no token was returned."
-        );
-      }
-
-      // Save authentication data
       localStorage.setItem("token", data.token);
 
-      localStorage.setItem(
-        "user",
-        JSON.stringify(data.user)
-      );
-
-      // Go to student dashboard
-      router.replace("/student/dashboard");
-
+      localStorage.setItem("user", JSON.stringify(data.user));
+      router.replace("/dashboard");
     } catch (err: any) {
-      console.error("Registration error:", err);
-
-      setError(
-        err?.message ||
-          "Unable to create your account. Please try again."
-      );
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // =========================================================
-  // UI
-  // =========================================================
-
   return (
-    <main
-      className={`${nunito.className} min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 flex flex-col`}
-    >
-     
-      {/* =====================================================
-          MAIN
-      ===================================================== */}
+    <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950 px-4 select-none">
+      <div className="absolute top-0 w-full h-full overflow-hidden pointer-events-none">
+        <div className="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] rounded-full bg-violet-600/20 blur-[120px]" />
+        <div className="absolute top-[60%] -right-[10%] w-[40%] h-[50%] rounded-full bg-cyan-500/20 blur-[120px]" />
+      </div>
 
-      <section className="flex-1 flex items-center justify-center px-6 py-10">
-
-        <div className="w-full max-w-5xl grid lg:grid-cols-2 gap-12 items-center">
-
-          {/* =================================================
-              LEFT SIDE
-          ================================================= */}
-
-          <div className="hidden lg:block">
-
-            <div className="max-w-lg">
-
-              {/* Icon */}
-
-              <div className="w-16 h-16 rounded-2xl bg-blue-100 flex items-center justify-center text-3xl mb-6">
-                🌱
-              </div>
-
-              {/* Small heading */}
-
-              <p className="text-blue-600 font-bold text-lg mb-3">
-                Start your journey
-              </p>
-
-              {/* Main heading */}
-
-              <h1 className="text-5xl font-extrabold text-gray-900 leading-tight">
-                Your wellbeing
-                <span className="text-blue-600">
-                  {" "}starts here.
-                </span>
-              </h1>
-
-              {/* Description */}
-
-              <p className="text-lg text-gray-600 leading-8 mt-6 max-w-md">
-                Create your CareBridge account and
-                take the first step toward better
-                wellbeing and meaningful support.
-              </p>
-
-              {/* Benefits */}
-
-              <div className="mt-8 space-y-4">
-
-                <div className="flex items-center gap-3 text-gray-600">
-
-                  <span className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center">
-                    💙
-                  </span>
-
-                  <span>
-                    A safe and supportive space
-                  </span>
-
-                </div>
-
-                <div className="flex items-center gap-3 text-gray-600">
-
-                  <span className="w-9 h-9 rounded-full bg-cyan-100 flex items-center justify-center">
-                    🌿
-                  </span>
-
-                  <span>
-                    Track your wellbeing
-                  </span>
-
-                </div>
-
-                <div className="flex items-center gap-3 text-gray-600">
-
-                  <span className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center">
-                    🤝
-                  </span>
-
-                  <span>
-                    Connect with professional support
-                  </span>
-
-                </div>
-
-              </div>
-
-            </div>
-
+      <div className="w-full max-w-md bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl rounded-3xl shadow-xl border border-white/20 dark:border-white/10 overflow-hidden relative z-10 transition-all duration-300 hover:shadow-2xl hover:border-white/30">
+        <div className="p-8">
+          <div className="text-center mb-10">
+            <h1 className="text-3xl font-bold bg-linear-to-r from-violet-600 to-cyan-500 bg-clip-text text-transparent mb-2 inline-block">
+              Create Account
+            </h1>
+            <p className="text-zinc-500 dark:text-zinc-400 text-sm">
+              Join us today — it&apos;s free
+            </p>
           </div>
 
-          {/* =================================================
-              REGISTER CARD
-          ================================================= */}
+          <form onSubmit={handleRegister} className="space-y-5">
+            <div>
+              <label
+                htmlFor="name"
+                className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5"
+              >
+                Full Name
+              </label>
+              <input
+                id="name"
+                type="text"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                autoComplete="name"
+                className="w-full px-4 py-3 rounded-xl bg-zinc-100/50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 transition-all placeholder:text-zinc-400 text-zinc-900 dark:text-zinc-100 placeholder:select-none"
+                placeholder="John Doe"
+              />
+            </div>
 
-          <div className="w-full max-w-md mx-auto">
+            <div>
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5"
+              >
+                Email Address
+              </label>
+              <input
+                id="email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+                className="w-full px-4 py-3 rounded-xl bg-zinc-100/50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 transition-all placeholder:text-zinc-400 text-zinc-900 dark:text-zinc-100 placeholder:select-none"
+                placeholder="name@example.com"
+              />
+            </div>
 
-            <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-7 md:p-9">
+            <div>
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5"
+              >
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="new-password"
+                className="w-full px-4 py-3 rounded-xl bg-zinc-100/50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 transition-all placeholder:text-zinc-400 text-zinc-900 dark:text-zinc-100"
+                placeholder="Min. 8 characters"
+              />
+            </div>
 
-              {/* Card Header */}
+            <div>
+              <label
+                htmlFor="confirmPassword"
+                className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5"
+              >
+                Confirm Password
+              </label>
+              <input
+                id="confirmPassword"
+                type="password"
+                required
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                autoComplete="new-password"
+                className="w-full px-4 py-3 rounded-xl bg-zinc-100/50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 transition-all placeholder:text-zinc-400 text-zinc-900 dark:text-zinc-100"
+                placeholder="••••••••"
+              />
+            </div>
 
-              <div className="text-center mb-8">
-
-                {/* Mobile icon */}
-
-                <div className="lg:hidden w-14 h-14 rounded-2xl bg-blue-100 flex items-center justify-center text-3xl mx-auto mb-4">
-                  🌱
-                </div>
-
-                <h2 className="text-3xl font-extrabold text-gray-900">
-                  Create account
-                </h2>
-
-                <p className="text-gray-500 mt-2">
-                  Join CareBridge and start your wellbeing journey
+            {error && (
+              <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl flex items-start gap-3 transition-all animate-in fade-in slide-in-from-top-1">
+                <svg
+                  className="w-5 h-5 text-red-500 dark:text-red-400 mt-0.5 shrink-0"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <p className="text-sm text-red-600 dark:text-red-400">
+                  {error}
                 </p>
-
               </div>
+            )}
 
-              {/* =================================================
-                  ERROR
-              ================================================= */}
-
-              {error && (
-                <div className="mb-5 p-4 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3">
-
+            <button
+              type="submit"
+              disabled={loading}
+              className={`w-full py-3 px-4 rounded-xl text-white font-medium shadow-lg transition-all duration-300 flex justify-center items-center gap-2
+                ${
+                  loading
+                    ? "bg-violet-500/70 cursor-not-allowed"
+                    : "bg-violet-600 hover:bg-violet-500 hover:shadow-violet-500/25 transform hover:-translate-y-0.5 active:translate-y-0"
+                }`}
+            >
+              {loading ? (
+                <>
                   <svg
-                    className="w-5 h-5 text-red-500 mt-0.5 shrink-0"
+                    className="animate-spin -ml-1 mr-2 h-5 w-5 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
                     fill="none"
                     viewBox="0 0 24 24"
-                    stroke="currentColor"
                   >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
                     <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
                   </svg>
-
-                  <p className="text-sm text-red-600">
-                    {error}
-                  </p>
-
-                </div>
+                  Creating account...
+                </>
+              ) : (
+                "Create account"
               )}
+            </button>
+          </form>
 
-              {/* =================================================
-                  FORM
-              ================================================= */}
-
-              <form
-                onSubmit={handleRegister}
-                className="space-y-5"
-              >
-
-                {/* Full Name */}
-
-                <div>
-
-                  <label
-                    htmlFor="name"
-                    className="block text-sm font-semibold text-gray-700 mb-2"
-                  >
-                    Full Name
-                  </label>
-
-                  <input
-                    id="name"
-                    type="text"
-                    required
-                    value={name}
-                    onChange={(e) =>
-                      setName(e.target.value)
-                    }
-                    autoComplete="name"
-                    placeholder="John Doe"
-                    className="w-full px-4 py-3.5 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all text-gray-800 placeholder:text-gray-400"
-                  />
-
-                </div>
-
-                {/* Email */}
-
-                <div>
-
-                  <label
-                    htmlFor="email"
-                    className="block text-sm font-semibold text-gray-700 mb-2"
-                  >
-                    Email Address
-                  </label>
-
-                  <input
-                    id="email"
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) =>
-                      setEmail(e.target.value)
-                    }
-                    autoComplete="email"
-                    placeholder="student@pdn.ac.lk"
-                    className="w-full px-4 py-3.5 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all text-gray-800 placeholder:text-gray-400"
-                  />
-
-                </div>
-
-                {/* Password */}
-
-                <div>
-
-                  <label
-                    htmlFor="password"
-                    className="block text-sm font-semibold text-gray-700 mb-2"
-                  >
-                    Password
-                  </label>
-
-                  <input
-                    id="password"
-                    type="password"
-                    required
-                    value={password}
-                    onChange={(e) =>
-                      setPassword(e.target.value)
-                    }
-                    autoComplete="new-password"
-                    placeholder="Minimum 8 characters"
-                    className="w-full px-4 py-3.5 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all text-gray-800 placeholder:text-gray-400"
-                  />
-
-                  <p className="text-xs text-gray-400 mt-2">
-                    Use at least 8 characters.
-                  </p>
-
-                </div>
-
-                {/* Confirm Password */}
-
-                <div>
-
-                  <label
-                    htmlFor="confirmPassword"
-                    className="block text-sm font-semibold text-gray-700 mb-2"
-                  >
-                    Confirm Password
-                  </label>
-
-                  <input
-                    id="confirmPassword"
-                    type="password"
-                    required
-                    value={confirmPassword}
-                    onChange={(e) =>
-                      setConfirmPassword(e.target.value)
-                    }
-                    autoComplete="new-password"
-                    placeholder="Re-enter your password"
-                    className="w-full px-4 py-3.5 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all text-gray-800 placeholder:text-gray-400"
-                  />
-
-                </div>
-
-                {/* Create Account */}
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3.5 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition-all shadow-md hover:shadow-lg disabled:bg-blue-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-
-                  {loading ? (
-                    <>
-                      <svg
-                        className="animate-spin h-5 w-5 text-white"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        />
-
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        />
-                      </svg>
-
-                      Creating account...
-                    </>
-                  ) : (
-                    "Create account"
-                  )}
-
-                </button>
-
-              </form>
-
-              {/* =================================================
-                  LOGIN LINK
-              ================================================= */}
-
-              <div className="text-center mt-7 pt-6 border-t border-gray-100">
-
-                <p className="text-sm text-gray-500">
-
-                  Already have an account?{" "}
-
-                  <Link
-                    href="/login"
-                    className="font-bold text-blue-600 hover:text-blue-700 transition-colors"
-                  >
-                    Sign in
-                  </Link>
-
-                </p>
-
-              </div>
-
-            </div>
-
-            {/* Bottom Message */}
-
-            <p className="text-center text-xs text-gray-400 mt-5">
-              Your privacy and wellbeing are important to us. 💙
-            </p>
-
+          <div className="mt-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
+            Already have an account?{" "}
+            <Link
+              href="/login"
+              className="font-semibold text-violet-600 dark:text-violet-400 hover:text-violet-500 transition-colors"
+            >
+              Sign in
+            </Link>
           </div>
-
         </div>
-
-      </section>
-
-    </main>
+      </div>
+    </div>
   );
 }
