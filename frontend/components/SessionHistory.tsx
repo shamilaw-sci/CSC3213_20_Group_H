@@ -1,87 +1,73 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import api from "@/services/api";
-import { Session } from "@/types/Session";
 
-const SessionHistory = () => {
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchSessions = async () => {
-    try {
-      const response = await api.get("/sessions/2");
-
-      setSessions(response.data);
-    } catch (error) {
-      console.error("Failed to fetch sessions:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+export default function SessionHistory() {
+  const [sessions, setSessions] =
+    useState<any[]>([]);
 
   useEffect(() => {
-    fetchSessions();
+    const user = JSON.parse(
+      localStorage.getItem("user") || "{}"
+    );
+
+    if (!user.id) return;
+
+    fetch(
+      `http://localhost:5050/api/sessions/${user.id}`
+    )
+      .then((res) => res.json())
+      .then((data) =>
+        setSessions(data)
+      )
+      .catch(console.error);
   }, []);
 
-  if (loading) {
-    return <p>Loading sessions...</p>;
-  }
-
   return (
-    <div>
-      <h2>Session History</h2>
-
+    <div className="space-y-4">
       {sessions.length === 0 ? (
-        <p>No Sessions Found</p>
+        <div className="text-center py-8 text-gray-500">
+          No booked sessions found.
+        </div>
       ) : (
         sessions.map((session) => (
           <div
             key={session.id}
-            style={{
-              border: "1px solid #ccc",
-              padding: "12px",
-              marginBottom: "10px",
-              borderRadius: "8px",
-            }}
+            className="border border-gray-200 rounded-2xl p-5 bg-gray-50"
           >
-            <p>
-              <strong>Session ID:</strong> {session.id}
+            <h3 className="font-bold text-lg">
+              {session.name}
+            </h3>
+
+            <p className="text-gray-600">
+              {session.specialization}
             </p>
 
-            {session.appointment_date && (
+            <div className="mt-3">
               <p>
                 <strong>Date:</strong>{" "}
-                {session.appointment_date}
+                {new Date(
+                  session.available_date
+                ).toLocaleDateString()}
               </p>
-            )}
 
-            <p>
-              <strong>Status:</strong>{" "}
-              {session.status}
-            </p>
-
-            <p>
-              <strong>Start Time:</strong>{" "}
-              {session.start_time}
-            </p>
-
-            <p>
-              <strong>End Time:</strong>{" "}
-              {session.end_time}
-            </p>
-
-            {session.notes && (
               <p>
-                <strong>Notes:</strong>{" "}
-                {session.notes}
+                <strong>Time:</strong>{" "}
+                {session.start_time}
+                {" - "}
+                {session.end_time}
               </p>
-            )}
+
+              <p>
+                <strong>Booked:</strong>{" "}
+                {new Date(
+                  session.booked_at
+                ).toLocaleString()}
+              </p>
+            </div>
           </div>
         ))
       )}
     </div>
   );
-};
-
-export default SessionHistory;
+}
