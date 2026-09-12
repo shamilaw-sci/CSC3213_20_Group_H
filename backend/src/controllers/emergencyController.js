@@ -1,31 +1,50 @@
 import db from '../config/db.js';
+import { assessSeverity, ValidationError } from '../utils/riskAssessment.js';
 
 export const triggerEmergency = async (req, res) => {
-    // req.user is supplied by your existing JWT auth middleware
-    const studentId = req.user.id; 
-    const { description, aiConfidence } = req.body;
+    // req.user is supplied by the JWT auth middleware; guard against it being missing
+    // so a misconfigured/bypassed middleware can't crash this handler with a TypeError.
+    if (!req.user || !req.user.id) {
+        return res.status(401).json({ error: 'Authentication required to trigger an emergency alert.' });
+    }
+    const studentId = req.user.id;
+    const { description, aiConfidence } = req.body ?? {};
+
+    // 1. Emergency Escalation Logic: severity calculation + crisis-keyword risk detection,
+    // plus the AI Confidence Fallback Rule (confidence below 65% triggers a human override).
+    let severityScore;
+    let fallbackTriggered;
+    let matchedKeywords;
+    let normalizedDescription;
+    let normalizedConfidence;
 
     try {
-        let severityScore = 'High';
-        let fallbackTriggered = false;
-
-        // 1. Emergency Escalation Logic & AI Confidence Fallback Rule
-        // If AI confidence score falls below 65%, trigger an instant human override
-        if (aiConfidence !== undefined && aiConfidence < 0.65) {
-            severityScore = 'Critical';
-            fallbackTriggered = true; 
+        ({
+            severityScore,
+            fallbackTriggered,
+            matchedKeywords,
+            aiConfidence: normalizedConfidence,
+            description: normalizedDescription,
+        } = assessSeverity({ description, aiConfidence }));
+    } catch (error) {
+        if (error instanceof ValidationError) {
+            return res.status(400).json({ error: error.message });
         }
+        console.error('Unexpected error assessing emergency severity:', error);
+        return res.status(500).json({ error: 'Critical system error processing emergency request.' });
+    }
 
+    try {
         // 2. Log Emergency to MySQL Database
         const [result] = await db.query(
-            `INSERT INTO emergencies (student_id, severity_score, description, ai_confidence, fallback_triggered, status) 
+            `INSERT INTO emergencies (student_id, severity_score, description, ai_confidence, fallback_triggered, status)
              VALUES (?, ?, ?, ?, ?, ?)`,
             [
-                studentId, 
-                severityScore, 
-                description || 'Immediate crisis assistance requested', 
-                aiConfidence || null, 
-                fallbackTriggered, 
+                studentId,
+                severityScore,
+                normalizedDescription || 'Immediate crisis assistance requested',
+                normalizedConfidence,
+                fallbackTriggered,
                 'Pending_Acknowledgment'
             ]
         );
@@ -37,7 +56,8 @@ export const triggerEmergency = async (req, res) => {
             emergencyId,
             studentId,
             severityScore,
-            fallbackTriggered
+            fallbackTriggered,
+            matchedKeywords
         });
 
         // 4. Immediate Acknowledgement Response back to the student
@@ -80,7 +100,8 @@ async function dispatchRedundantNotifications(details) {
             }
         }
 
-        console.log(`[EMERGENCY DISPATCHED] ID: ${details.emergencyId} | Severity: ${details.severityScore} | Email: ${emailSent} | SMS: ${smsSent}`);
+        const riskFlags = details.matchedKeywords?.length ? details.matchedKeywords.join(', ') : 'none';
+        console.log(`[EMERGENCY DISPATCHED] ID: ${details.emergencyId} | Severity: ${details.severityScore} | Fallback: ${details.fallbackTriggered} | RiskFlags: ${riskFlags} | Email: ${emailSent} | SMS: ${smsSent}`);
     } catch (err) {
         console.error('Notification dispatch failure across channels:', err);
     }
