@@ -10,6 +10,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { Nunito } from "next/font/google";
+import { API_BASE_URL } from "../../../services/api";
 
 const nunito = Nunito({
   subsets: ["latin"],
@@ -23,7 +24,7 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    fetch("http://localhost:5000/api/admin/analytics", {
+    fetch(`${API_BASE_URL}/api/admin/analytics`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(async (res) => {
@@ -44,12 +45,9 @@ export default function AdminDashboardPage() {
   const handleDownloadReport = async (format: "csv" | "pdf") => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(
-        `http://localhost:5000/api/admin/reports/${format}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
+      const res = await fetch(`${API_BASE_URL}/api/admin/reports/${format}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (!res.ok) throw new Error("Download failed");
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
@@ -66,25 +64,34 @@ export default function AdminDashboardPage() {
 
   if (loading)
     return (
-      <div className={`${nunito.className} p-12 text-gray-500 bg-gray-50 min-h-screen flex items-center justify-center font-semibold text-lg`}>
+      <div
+        className={`${nunito.className} p-12 text-gray-500 bg-gray-50 min-h-screen flex items-center justify-center font-semibold text-lg`}
+      >
         Loading Administration Portal...
       </div>
     );
   if (error)
     return (
-      <div className={`${nunito.className} p-12 text-rose-600 bg-gray-50 min-h-screen flex items-center justify-center font-semibold text-lg`}>
+      <div
+        className={`${nunito.className} p-12 text-rose-600 bg-gray-50 min-h-screen flex items-center justify-center font-semibold text-lg`}
+      >
         Access Error: {error}
       </div>
     );
 
   return (
-    <div className={`${nunito.className} p-8 md:p-12 space-y-8 bg-gray-50 text-gray-900 min-h-screen`}>
+    <div
+      className={`${nunito.className} p-8 md:p-12 space-y-8 bg-gray-50 text-gray-900 min-h-screen`}
+    >
       {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight">Admin Oversight & Monitoring</h1>
+          <h1 className="text-3xl font-extrabold tracking-tight">
+            Admin Oversight & Monitoring
+          </h1>
           <p className="text-gray-500 text-sm mt-1">
-            Manage platform accounts, review metrics, and generate audit reports securely.
+            Manage platform accounts, review metrics, and generate audit reports
+            securely.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -139,7 +146,11 @@ export default function AdminDashboardPage() {
         <div className="h-80 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={analytics?.charts?.severityStats || []}>
-              <XAxis dataKey="severity_score" stroke="#9ca3af" tick={{ fill: "#4b5563" }} />
+              <XAxis
+                dataKey="severity_score"
+                stroke="#9ca3af"
+                tick={{ fill: "#4b5563" }}
+              />
               <YAxis stroke="#9ca3af" tick={{ fill: "#4b5563" }} />
               <Tooltip
                 contentStyle={{
