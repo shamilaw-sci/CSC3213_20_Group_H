@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { API_BASE_URL } from "../../services/api";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -16,8 +17,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // Connect to the backend API - Ensure your backend is running on 5000
-      const res = await fetch("http://localhost:5000/api/auth/login", {
+      const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -42,9 +42,15 @@ export default function LoginPage() {
           role: data.role,
         }),
       );
+      localStorage.setItem("role", data.role);
 
-      // Successfully logged in
-      router.replace("/dashboard");
+      const role = String(data.role || "").toLowerCase();
+
+      if (role === "admin" || role === "supervisor") {
+        window.location.href = "/admin/dashboard";
+      } else {
+        window.location.href = "/dashboard";
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -58,12 +64,9 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const res = await fetch(
-        "http://localhost:65000/api/auth/register/anonymous",
-        {
-          method: "POST",
-        },
-      );
+      const res = await fetch(`${API_BASE_URL}/api/auth/register/anonymous`, {
+        method: "POST",
+      });
 
       const data = await res.json();
 
@@ -186,14 +189,12 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => {
-                window.location.href =
-                  "http://localhost:5000/api/auth/google";
+                window.location.href = `${API_BASE_URL}/api/auth/google`;
               }}
               className="w-full mt-3 py-3 px-4 rounded-xl bg-red-500 text-white font-medium hover:bg-red-400 transition-all"
             >
               Continue with Google
             </button>
-
           </form>
 
           <div className="mt-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
