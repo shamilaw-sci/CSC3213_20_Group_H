@@ -27,10 +27,15 @@ export default function AuthGuard({
     try {
       const user = JSON.parse(userData);
 
-      if (
-        allowedRoles &&
-        !allowedRoles.includes(user.role)
-      ) {
+      const userRole = String(user.role || "").toLowerCase();
+
+      const allowed =
+        !allowedRoles ||
+        allowedRoles.some(
+          (role) => role.toLowerCase() === userRole
+        );
+
+      if (!allowed) {
         router.replace("/dashboard");
         return;
       }
@@ -39,6 +44,7 @@ export default function AuthGuard({
     } catch (error) {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
+      localStorage.removeItem("role");
       router.replace("/login");
     }
   }, [router, allowedRoles]);

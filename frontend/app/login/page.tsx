@@ -48,6 +48,10 @@ export default function LoginPage() {
 
       if (role === "admin" || role === "supervisor") {
         window.location.href = "/admin/dashboard";
+      } else if (role === "student") {
+        window.location.href = "/student/dashboard";
+      } else if (role === "counsellor") {
+        window.location.href = "/counsellor/dashboard";
       } else {
         window.location.href = "/dashboard";
       }
@@ -74,11 +78,20 @@ export default function LoginPage() {
 
       // store anonymous session
       localStorage.setItem("token", data.token);
-      localStorage.setItem("role", data.role);
+
+      const anonymousUser = {
+          id: data.anonymousId,
+          role: "student",
+          name: "Anonymous User",
+          isAnonymous: true,
+      };
+
+      localStorage.setItem("user", JSON.stringify(anonymousUser));
+      localStorage.setItem("role", "student");
       localStorage.setItem("userId", data.anonymousId);
 
-      // redirect
-      router.replace("/dashboard");
+      router.replace("/student/dashboard");
+
     } catch (err: any) {
       console.log("Anonymous error:", err);
       setError("Anonymous login failed");
@@ -138,6 +151,7 @@ export default function LoginPage() {
                 </label>
                 <button
                   type="button"
+                  onClick={() => router.push("/forgot-password")}
                   className="text-xs text-violet-600 dark:text-violet-400 hover:text-violet-500 transition-colors"
                 >
                   Forgot password?

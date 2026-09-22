@@ -3,7 +3,13 @@ import passport from 'passport';
 import jwt from 'jsonwebtoken';
 
 import db from '../config/db.js';
-import { login, register, anonymousLogin } from '../controllers/authController.js';
+import {
+  login,
+  register,
+  anonymousLogin,
+  forgotPassword,
+  resetPassword
+} from '../controllers/authController.js';
 
 const router = express.Router();
 
@@ -15,6 +21,12 @@ router.post('/register', register);
 
 // POST /api/auth/register/anonymous
 router.post('/register/anonymous', anonymousLogin);
+
+// POST /api/auth/forgot-password
+router.post('/forgot-password', forgotPassword);
+
+// POST /api/auth/reset-password
+router.post('/reset-password', resetPassword);
 
 // Google Authentication
 
@@ -40,17 +52,14 @@ router.get(
 
       const { email, name, googleId } = req.user;
 
-
       // Check if Google user already exists
       const [existingUsers] = await db.query(
         'SELECT id, role FROM users WHERE email = ?',
         [email]
       );
 
-
       let userId;
       let role = "Student";
-
 
       if (existingUsers.length > 0) {
 
@@ -61,7 +70,7 @@ router.get(
 
         // Create new Google user
         const [result] = await db.query(
-          `INSERT INTO users 
+          `INSERT INTO users
           (name, email, password, role)
           VALUES (?, ?, ?, ?)`,
           [
@@ -72,11 +81,8 @@ router.get(
           ]
         );
 
-
         userId = result.insertId;
-
       }
-
 
       // Generate CareBridge JWT
       const token = jwt.sign(
@@ -90,22 +96,19 @@ router.get(
         }
       );
 
-
-        res.redirect(
-`http://localhost:3001/auth/google/callback?token=${token}&userId=${userId}&role=${role}`
+      res.redirect(
+  `http://localhost:3000/auth/google/callback?token=${token}&userId=${userId}&role=${role}`
 );
 
-
-    } catch(error){
+    } catch (error) {
 
       console.error("Google login error:", error);
 
       res.status(500).json({
-        message:"Google authentication failed"
+        message: "Google authentication failed"
       });
 
     }
-
   }
 );
 
