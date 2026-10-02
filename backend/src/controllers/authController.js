@@ -55,7 +55,7 @@ export const register = async (req, res) => {
             [name, email, hashedPassword, 'Student']
         );
 
-        const secretKey = process.env.JWT_SECRET || 'fallback_secret_key';
+        const secretKey = process.env.JWT_SECRET;
 
         const token = jwt.sign(
             {
@@ -115,7 +115,7 @@ export const login = async (req, res) => {
             });
         }
 
-        const secretKey = process.env.JWT_SECRET || 'fallback_secret_key';
+        const secretKey = process.env.JWT_SECRET;
 
         const payload = {
             id: user.userId,
@@ -163,8 +163,7 @@ export const anonymousLogin = async (req, res) => {
             ]
         );
 
-        const secretKey =
-            process.env.JWT_SECRET || 'fallback_secret_key';
+        const secretKey = process.env.JWT_SECRET;
 
         const token = jwt.sign(
             {

@@ -13,6 +13,8 @@ import UpcomingAppointment from "@/components/student/UpcomingAppointment";
 import RecommendedSection from "@/components/student/RecommendedSection";
 import QuickActions from "@/components/student/QuickActions";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+
 interface Assessment {
   name?: string;
   date?: string;
@@ -89,7 +91,7 @@ export default function StudentDashboard() {
 
         try {
           const assessmentResponse = await fetch(
-            "http://localhost:5000/api/assessment",
+            `${API_BASE_URL}/api/assessment`,
             {
               method: "GET",
               headers,
@@ -143,7 +145,7 @@ export default function StudentDashboard() {
 
         try {
           const appointmentResponse = await fetch(
-            "http://localhost:5000/api/book",
+            `${API_BASE_URL}/api/book`,
             {
               method: "GET",
               headers,
