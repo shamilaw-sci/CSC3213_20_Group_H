@@ -11,6 +11,7 @@ import chatRoutes from "./routes/chatRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import counsellorRoutes from "./routes/counsellorRoutes.js";
 import sessionRoutes from "./routes/sessionRoutes.js";
+import availabilityRoutes from "./routes/availabilityRoutes.js";
 
 dotenv.config();
 
@@ -69,8 +70,9 @@ app.use("/api/auth", authRoutes);
 // Emergency Support
 app.use("/api/emergency", emergencyRoutes);
 
-// Patient-friendly counselling chatbot
+// Chatbot
 app.use("/api/chat", chatRoutes);
+
 // Admin
 app.use("/api/admin", adminRoutes);
 
@@ -79,6 +81,9 @@ app.use("/api/counsellors", counsellorRoutes);
 
 // Session History
 app.use("/api/sessions", sessionRoutes);
+
+// Availability Management
+app.use("/api/availability", availabilityRoutes);
 
 /*
 |--------------------------------------------------------------------------

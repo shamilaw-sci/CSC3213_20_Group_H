@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+
 import Navbar from "@/components/Navbar";
 import EmergencyButton from "@/components/EmergencyButton";
 
@@ -11,7 +12,8 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "CareBridge",
-  description: "Mental health support for university students",
+  description:
+    "Mental health support for university students",
 };
 
 export default function RootLayout({
@@ -20,12 +22,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} h-full antialiased`}>
+    <html
+      lang="en"
+      className={`${inter.variable} h-full antialiased`}
+    >
       <body className="min-h-full flex flex-col">
         <Navbar />
         {children}
         <EmergencyButton />
-        </body>
+      </body>
     </html>
   );
 }

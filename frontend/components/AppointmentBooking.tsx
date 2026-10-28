@@ -17,7 +17,7 @@ interface Slot {
 
 interface Appointment {
   id: number;
-  name: string;
+  counsellor_name: string;
   specialization: string;
   available_date: string;
   start_time: string;
@@ -215,26 +215,36 @@ export default function AppointmentBooking() {
               </thead>
 
               <tbody>
-                {appointments.map((appointment) => (
-                  <tr key={appointment.id}>
-                    <td className="border p-3">{appointment.name}</td>
+                  {appointments.map((appointment) => (
+                    <tr key={appointment.id}>
+                      <td className="border p-3 font-medium">
+                        {appointment.counsellor_name}
+                      </td>
 
-                    <td className="border p-3">{appointment.specialization}</td>
+                      <td className="border p-3">
+                        {appointment.specialization}
+                      </td>
 
-                    <td className="border p-3">{appointment.available_date}</td>
+                      <td className="border p-3">
+                        {new Date(
+                          appointment.available_date
+                        ).toLocaleDateString()}
+                      </td>
 
-                    <td className="border p-3">
-                      {appointment.start_time}
-                      {" - "}
-                      {appointment.end_time}
-                    </td>
+                      <td className="border p-3">
+                        {appointment.start_time}
+                        {" - "}
+                        {appointment.end_time}
+                      </td>
 
-                    <td className="border p-3">
-                      {new Date(appointment.booked_at).toLocaleString()}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
+                      <td className="border p-3">
+                        {new Date(
+                          appointment.booked_at
+                        ).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
             </table>
           </div>
         )}
