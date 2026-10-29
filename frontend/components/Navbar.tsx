@@ -20,6 +20,7 @@ export default function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -28,25 +29,40 @@ export default function Navbar() {
 
     if (token) {
       setIsLoggedIn(true);
+
       if (
         role &&
-        (role.toLowerCase() === "admin" || role.toLowerCase() === "supervisor")
+        ["admin", "supervisor"].includes(
+          role.toLowerCase()
+        )
       ) {
         setIsAdmin(true);
       }
     }
 
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = (
+      event: MouseEvent
+    ) => {
       if (
         dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
+        !dropdownRef.current.contains(
+          event.target as Node
+        )
       ) {
         setDropdownOpen(false);
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener(
+      "mousedown",
+      handleClickOutside
+    );
+
+    return () =>
+      document.removeEventListener(
+        "mousedown",
+        handleClickOutside
+      );
   }, []);
 
   const handleLogout = () => {
@@ -55,124 +71,133 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 flex justify-between items-center px-6 md:px-12 py-4 bg-white/70 backdrop-blur-md border-b border-gray-100/80">
-      {/* Brand & Clean Nav Links */}
+    <header className="sticky top-0 z-50 flex justify-between items-center px-6 md:px-12 py-4 bg-white border-b shadow-sm">
       <div className="flex items-center gap-8">
         <Link
           href="/"
-          className="text-xl font-extrabold text-gray-900 tracking-tight"
+          className="text-2xl font-bold text-blue-700"
         >
           CareBridge
         </Link>
 
         {isLoggedIn && (
-          <nav className="hidden lg:flex items-center gap-1 text-xs font-semibold text-gray-600">
+          <nav className="hidden lg:flex items-center gap-2">
             <Link
               href="/chat"
-              className="px-3 py-1.5 rounded-lg hover:text-indigo-600 hover:bg-gray-50 transition-all flex items-center gap-1.5"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100"
             >
-              <MessageCircle size={14} /> Chat
+              <MessageCircle size={16} />
+              Chat
             </Link>
+
             <Link
               href="/dashboard"
-              className="px-3 py-1.5 rounded-lg hover:text-indigo-600 hover:bg-gray-50 transition-all flex items-center gap-1.5"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100"
             >
-              <LayoutDashboard size={14} /> Overview
+              <LayoutDashboard size={16} />
+              Overview
             </Link>
+
             <Link
               href="/booking"
-              className="px-3 py-1.5 rounded-lg hover:text-indigo-600 hover:bg-gray-50 transition-all flex items-center gap-1.5"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100"
             >
-              <Calendar size={14} /> Booking
+              <Calendar size={16} />
+              Booking
             </Link>
+
             <Link
-              href="/availability"
-              className="px-3 py-1.5 rounded-lg hover:text-indigo-600 hover:bg-gray-50 transition-all flex items-center gap-1.5"
+              href="/availability-management"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100"
             >
-              <Clock size={14} /> Availability
+              <Clock size={16} />
+              Availability
             </Link>
+
             <Link
               href="/session-history"
-              className="px-3 py-1.5 rounded-lg hover:text-indigo-600 hover:bg-gray-50 transition-all flex items-center gap-1.5"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100"
             >
-              <History size={14} /> History
+              <History size={16} />
+              History
             </Link>
+
             <Link
               href="/voice-call"
-              className="px-3 py-1.5 rounded-lg hover:text-indigo-600 hover:bg-gray-50 transition-all flex items-center gap-1.5"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100"
             >
-              <PhoneCall size={14} /> Voice Call
+              <PhoneCall size={16} />
+              Voice Call
             </Link>
           </nav>
         )}
       </div>
 
-      {/* Right Action Section */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center">
         {!isLoggedIn ? (
-          <div className="hidden md:flex items-center gap-6 text-sm font-semibold text-gray-600">
+          <div className="flex items-center gap-4">
             <Link
               href="/features"
-              className="hover:text-indigo-600 transition-colors"
+              className="hover:text-blue-600"
             >
               Features
             </Link>
-            <Link
-              href="/#how-it-works"
-              className="hover:text-indigo-600 transition-colors"
-            >
-              How it works
-            </Link>
-            <Link
-              href="/#about"
-              className="hover:text-indigo-600 transition-colors"
-            >
-              About
-            </Link>
+
             <Link
               href="/login"
-              className="px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white rounded-xl text-xs font-bold transition-all shadow-xs"
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
             >
               Sign In
             </Link>
           </div>
         ) : (
-          <div className="relative" ref={dropdownRef}>
+          <div
+            className="relative"
+            ref={dropdownRef}
+          >
             <button
-              onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center gap-2.5 py-1 px-2.5 rounded-full hover:bg-gray-50 transition-all cursor-pointer text-gray-700"
+              onClick={() =>
+                setDropdownOpen(!dropdownOpen)
+              }
+              className="flex items-center gap-2 px-3 py-2 rounded-full hover:bg-gray-100"
             >
-              <div className="w-7 h-7 rounded-full bg-gray-100 text-gray-700 flex items-center justify-center font-bold text-xs">
-                <User size={14} />
-              </div>
-              <span className="text-xs font-semibold hidden sm:inline">
+              <User size={18} />
+
+              <span className="hidden sm:block">
                 Account
               </span>
+
               <ChevronDown
-                size={13}
-                className={`text-gray-400 transition-transform ${dropdownOpen ? "rotate-180" : ""}`}
+                size={16}
+                className={`transition-transform ${
+                  dropdownOpen
+                    ? "rotate-180"
+                    : ""
+                }`}
               />
             </button>
 
             {dropdownOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-2xl shadow-lg py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+              <div className="absolute right-0 mt-2 w-56 bg-white border rounded-xl shadow-lg overflow-hidden">
                 {isAdmin && (
                   <Link
                     href="/admin/dashboard"
-                    onClick={() => setDropdownOpen(false)}
-                    className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-indigo-600 hover:bg-gray-50 transition-colors"
+                    onClick={() =>
+                      setDropdownOpen(false)
+                    }
+                    className="flex items-center gap-2 px-4 py-3 hover:bg-gray-50"
                   >
-                    <Shield size={14} /> Admin Dashboard
+                    <Shield size={16} />
+                    Admin Dashboard
                   </Link>
                 )}
 
-                <div className="border-t border-gray-50 my-1"></div>
-
                 <button
                   onClick={handleLogout}
-                  className="w-full flex items-center gap-2 px-4 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50/50 transition-colors text-left cursor-pointer"
+                  className="w-full flex items-center gap-2 px-4 py-3 text-red-600 hover:bg-red-50"
                 >
-                  <LogOut size={14} /> Logout
+                  <LogOut size={16} />
+                  Logout
                 </button>
               </div>
             )}
