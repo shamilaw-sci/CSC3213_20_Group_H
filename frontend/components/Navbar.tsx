@@ -71,7 +71,7 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 flex justify-between items-center px-6 md:px-12 py-4 bg-white border-b shadow-sm">
+    <header className="sticky top-0 z-50 flex justify-between items-center px-6 md:px-12 py-4 bg-white shadow-sm">
       <div className="flex items-center gap-8">
         <Link
           href="/"
