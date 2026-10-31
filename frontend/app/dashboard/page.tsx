@@ -7,7 +7,7 @@ import AuthGuard from "@/components/AuthGuard";
 import socket from "@/services/socket";
 
 type EmergencyAlert = {
-  message?: string;
+  description?: string;
   severity?: string;
   [key: string]: unknown;
 };
@@ -81,7 +81,10 @@ export default function Dashboard() {
         }}
       >
         <strong>High-priority emergency alert</strong>
-        <p>{emergencyAlert.message || "A new emergency requires attention."}</p>
+        <p>
+          {emergencyAlert.description ||
+            "A new emergency requires attention."}
+        </p>
       </div>
     )}
 
