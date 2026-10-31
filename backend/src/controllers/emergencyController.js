@@ -3,15 +3,12 @@ import { assessSeverity, ValidationError } from '../utils/riskAssessment.js';
 
 export const triggerEmergency = async (req, res) => {
     // req.user is supplied by the JWT auth middleware; guard against it being missing
-    // so a misconfigured/bypassed middleware can't crash this handler with a TypeError.
     if (!req.user || !req.user.id) {
         return res.status(401).json({ error: 'Authentication required to trigger an emergency alert.' });
     }
     const studentId = req.user.id;
     const { description, aiConfidence } = req.body ?? {};
 
-    // 1. Emergency Escalation Logic: severity calculation + crisis-keyword risk detection,
-    // plus the AI Confidence Fallback Rule (confidence below 65% triggers a human override).
     let severityScore;
     let fallbackTriggered;
     let matchedKeywords;
@@ -35,7 +32,7 @@ export const triggerEmergency = async (req, res) => {
     }
 
     try {
-        // 2. Log Emergency to MySQL Database
+        // 1. Log Emergency to MySQL Database
         const [result] = await db.query(
             `INSERT INTO emergencies (student_id, severity_score, description, ai_confidence, fallback_triggered, status)
              VALUES (?, ?, ?, ?, ?, ?)`,
@@ -51,6 +48,18 @@ export const triggerEmergency = async (req, res) => {
 
         const emergencyId = result.insertId;
 
+        // 2. Broadcast Real-Time Alert to Counsellors via Socket.IO
+        if (global.io) {
+            global.io.to('counsellors-room').emit('emergencyAlert', {
+                emergencyId,
+                studentId,
+                severityScore,
+                fallbackTriggered,
+                description: normalizedDescription,
+                timestamp: new Date().toISOString()
+            });
+        }
+
         // 3. Trigger Redundant Notifications (In-App -> SendGrid -> Twilio fallback)
         await dispatchRedundantNotifications({
             emergencyId,
@@ -60,7 +69,7 @@ export const triggerEmergency = async (req, res) => {
             matchedKeywords
         });
 
-        // 4. Immediate Acknowledgement Response back to the student
+        // 4. Immediate Acknowledgement Response back to the student (Satisfies NF-PERF-1.5 <= 3s)
         return res.status(201).json({
             success: true,
             message: 'Help request received. Emergency protocols activated. An active responder has been notified.',
