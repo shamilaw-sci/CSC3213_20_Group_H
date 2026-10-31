@@ -77,7 +77,20 @@ JWT_SECRET=your_jwt_secret
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
 GOOGLE_CALLBACK_URL=http://localhost:5050/api/auth/google/callback
+SENDGRID_API_KEY=your_sendgrid_api_key
+SENDGRID_FROM_EMAIL=alerts@example.com
+ON_CALL_COUNSELLOR_EMAILS=counsellor@example.com
+TWILIO_ACCOUNT_SID=your_twilio_account_sid
+TWILIO_AUTH_TOKEN=your_twilio_auth_token
+TWILIO_FROM_NUMBER=+15551234567
+ON_CALL_COUNSELLOR_PHONES=+15557654321
+TWILIO_REDUNDANT_ESCALATION=false
 ```
+
+`ON_CALL_COUNSELLOR_EMAILS` and `ON_CALL_COUNSELLOR_PHONES` accept comma-separated
+recipient lists. SendGrid is attempted first; Twilio is used when email fails or
+when `TWILIO_REDUNDANT_ESCALATION=true`. Provider credentials and recipient
+contact details must be supplied through environment variables.
 
 The default port is `5050`, not `5000` — on macOS, `5000` is commonly held by the
 AirPlay Receiver service, causing an `EADDRINUSE` crash on startup.
