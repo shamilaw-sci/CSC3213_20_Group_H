@@ -130,16 +130,4 @@ app.use((err, req, res, next) => {
   });
 });
 
-const PORT = process.env.PORT || 5000;
-
-const startServer = (port) => {
-  return app.listen(port, () => {
-    console.log(`CareBridge backend server running on port ${port}`);
-  });
-};
-
-if (process.env.NODE_ENV !== "test") {
-  startServer(PORT);
-}
-
 export default app;
