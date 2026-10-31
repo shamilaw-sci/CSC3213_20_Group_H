@@ -1,5 +1,7 @@
 import db from '../config/db.js';
 import { assessSeverity, ValidationError } from '../utils/riskAssessment.js';
+import sgMail from '@sendgrid/mail';
+import twilio from 'twilio';
 
 export const triggerEmergency = async (req, res) => {
     // req.user is supplied by the JWT auth middleware; guard against it being missing
@@ -66,7 +68,8 @@ export const triggerEmergency = async (req, res) => {
             studentId,
             severityScore,
             fallbackTriggered,
-            matchedKeywords
+            matchedKeywords,
+            description: normalizedDescription || 'Immediate crisis assistance requested',
         });
 
         // 4. Immediate Acknowledgement Response back to the student (Satisfies NF-PERF-1.5 <= 3s)
@@ -83,35 +86,88 @@ export const triggerEmergency = async (req, res) => {
     }
 };
 
-// Redundant Notification Engine with Fallback Channels
 async function dispatchRedundantNotifications(details) {
-    try {
-        let emailSent = false;
-        let smsSent = false;
+    const emailRecipients = getConfiguredRecipients('ON_CALL_COUNSELLOR_EMAILS');
+    const phoneRecipients = getConfiguredRecipients('ON_CALL_COUNSELLOR_PHONES');
+    const sendSmsRedundantly = process.env.TWILIO_REDUNDANT_ESCALATION === 'true';
+    let emailSent = false;
+    let smsSent = false;
 
-        // Channel 1: Email via SendGrid (Fallback Layer 1)
-        if (process.env.SENDGRID_API_KEY) {
-            try {
-                // Implement SendGrid Mail API call here
-                emailSent = true;
-            } catch (emailErr) {
-                console.error('SendGrid channel failed, triggering fallback...', emailErr);
-            }
+    if (process.env.SENDGRID_API_KEY && process.env.SENDGRID_FROM_EMAIL && emailRecipients.length) {
+        try {
+            sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+            await sgMail.send({
+                to: emailRecipients,
+                from: process.env.SENDGRID_FROM_EMAIL,
+                subject: `URGENT CareBridge emergency alert #${details.emergencyId}`,
+                text: [
+                    'An emergency alert requires immediate counsellor attention.',
+                    `Emergency ID: ${details.emergencyId}`,
+                    `Severity: ${details.severityScore}`,
+                    `Student ID: ${details.studentId}`,
+                    `Description: ${details.description}`,
+                    `Time: ${new Date().toISOString()}`,
+                ].join('\n'),
+            });
+            emailSent = true;
+        } catch (error) {
+            console.error('SendGrid notification failed:', error.message);
         }
-
-        // Channel 2: SMS via Twilio (Fallback Layer 2 / High-Urgency Redundancy)
-        if (!emailSent && process.env.TWILIO_ACCOUNT_SID) {
-            try {
-                // Implement Twilio SMS API call here
-                smsSent = true;
-            } catch (smsErr) {
-                console.error('Twilio channel failed as well:', smsErr);
-            }
-        }
-
-        const riskFlags = details.matchedKeywords?.length ? details.matchedKeywords.join(', ') : 'none';
-        console.log(`[EMERGENCY DISPATCHED] ID: ${details.emergencyId} | Severity: ${details.severityScore} | Fallback: ${details.fallbackTriggered} | RiskFlags: ${riskFlags} | Email: ${emailSent} | SMS: ${smsSent}`);
-    } catch (err) {
-        console.error('Notification dispatch failure across channels:', err);
+    } else {
+        console.error(
+            'SendGrid notification skipped: configure SENDGRID_API_KEY, SENDGRID_FROM_EMAIL, and ON_CALL_COUNSELLOR_EMAILS.'
+        );
     }
+
+    if ((!emailSent || sendSmsRedundantly) && phoneRecipients.length) {
+        if (
+            process.env.TWILIO_ACCOUNT_SID &&
+            process.env.TWILIO_AUTH_TOKEN &&
+            process.env.TWILIO_FROM_NUMBER
+        ) {
+            try {
+                const client = twilio(
+                    process.env.TWILIO_ACCOUNT_SID,
+                    process.env.TWILIO_AUTH_TOKEN
+                );
+                const message = [
+                    'URGENT CareBridge emergency alert',
+                    `ID: ${details.emergencyId}`,
+                    `Severity: ${details.severityScore}`,
+                    `Description: ${details.description}`,
+                ].join(' | ');
+
+                await Promise.all(
+                    phoneRecipients.map((to) =>
+                        client.messages.create({
+                            body: message,
+                            from: process.env.TWILIO_FROM_NUMBER,
+                            to,
+                        })
+                    )
+                );
+                smsSent = true;
+            } catch (error) {
+                console.error('Twilio notification failed:', error.message);
+            }
+        } else {
+            console.error(
+                'Twilio notification skipped: configure TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_FROM_NUMBER.'
+            );
+        }
+    }
+
+    if (!emailSent && !smsSent) {
+        console.error('Emergency notification delivery failed on all configured channels.');
+    }
+
+    const riskFlags = details.matchedKeywords?.length ? details.matchedKeywords.join(', ') : 'none';
+    console.log(`[EMERGENCY DISPATCHED] ID: ${details.emergencyId} | Severity: ${details.severityScore} | Fallback: ${details.fallbackTriggered} | RiskFlags: ${riskFlags} | Email: ${emailSent} | SMS: ${smsSent}`);
+}
+
+function getConfiguredRecipients(environmentVariable) {
+    return (process.env[environmentVariable] || '')
+        .split(',')
+        .map((recipient) => recipient.trim())
+        .filter(Boolean);
 }
