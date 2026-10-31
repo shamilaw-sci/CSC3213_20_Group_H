@@ -18,7 +18,6 @@ export default function EmergencyButton() {
 
       if (!token) {
         setErrorMessage("You must be logged in to trigger an emergency alert.");
-        setLoading(false);
         return;
       }
 
@@ -26,7 +25,7 @@ export default function EmergencyButton() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: ["Bearer", token].join(" "),
         },
         body: JSON.stringify({
           description: "Panic button triggered from user dashboard",
@@ -37,18 +36,21 @@ export default function EmergencyButton() {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(
-          errorData.message || "Failed to dispatch emergency call.",
+          errorData.error ||
+            errorData.message ||
+            "Failed to dispatch emergency call.",
         );
       }
 
-      // Success state
       setModalOpen(false);
       setAcknowledged(true);
       setTimeout(() => setAcknowledged(false), 6000);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Failed to dispatch emergency call", err);
       setErrorMessage(
-        err.message || "An error occurred while alerting support.",
+        err instanceof Error
+          ? err.message
+          : "An error occurred while alerting support.",
       );
     } finally {
       setLoading(false);

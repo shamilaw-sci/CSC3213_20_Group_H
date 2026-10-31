@@ -17,6 +17,18 @@ async function seed() {
       database: process.env.DB_NAME || 'mind_ease_db',
     });
 
+    console.log("Database configuration:", {
+      host: process.env.DB_HOST || 'localhost',
+      port: process.env.DB_PORT || 3306,
+      database: process.env.DB_NAME || 'mind_ease_db',
+    });
+
+    const [dbInfo] = await pool.query(
+      "SELECT DATABASE() AS db, @@port AS port, @@hostname AS host"
+    );
+
+    console.log("Connected database:", dbInfo[0]);
+
     const users = [
       {
         name: "System Admin",
@@ -28,7 +40,13 @@ async function seed() {
         name: "Test Student",
         email: "student@carebridge.com",
         password: "password123",
-        role: "Student",
+        role: "student",
+      },
+      {
+        name: "Test Counsellor",
+        email: "counsellor@carebridge.com",
+        password: "counsellor123",
+        role: "counsellor",
       },
     ];
 
@@ -55,6 +73,29 @@ async function seed() {
       );
 
       console.log(`✅ ${user.role} account ready: ${user.email}`);
+
+      if (user.role === "counsellor") {
+        const [rows] = await pool.query(
+          "SELECT id FROM users WHERE email = ?",
+          [user.email]
+        );
+
+        const userId = rows[0].id;
+
+        await pool.query(
+          `
+    INSERT INTO counsellor_profiles
+      (user_id, verification_status, is_available)
+    VALUES (?, 'approved', TRUE)
+    ON DUPLICATE KEY UPDATE
+      verification_status = 'approved',
+      is_available = TRUE
+    `,
+          [userId]
+        );
+
+        console.log("✅ Counsellor profile ready and approved");
+      }
     }
 
     console.log("\n=========================================");
