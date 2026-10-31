@@ -17,12 +17,6 @@ dotenv.config();
 
 const app = express();
 
-/*
-|--------------------------------------------------------------------------
-| Middleware
-|--------------------------------------------------------------------------
-*/
-
 app.use(
   cors({
     origin: "http://localhost:3000",
@@ -48,48 +42,23 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
-/*
-|--------------------------------------------------------------------------
-| Root Route
-|--------------------------------------------------------------------------
-*/
-
 app.get("/", (req, res) => {
   res.send("Mind-Ease API is running...");
 });
 
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-*/
-
-// Authentication
 app.use("/api/auth", authRoutes);
 
-// Emergency Support
 app.use("/api/emergency", emergencyRoutes);
 
-// Chatbot
 app.use("/api/chat", chatRoutes);
 
-// Admin
 app.use("/api/admin", adminRoutes);
 
-// Counsellors & Booking
 app.use("/api/counsellors", counsellorRoutes);
 
-// Session History
 app.use("/api/sessions", sessionRoutes);
 
-// Availability Management
 app.use("/api/availability", availabilityRoutes);
-
-/*
-|--------------------------------------------------------------------------
-| Logs API
-|--------------------------------------------------------------------------
-*/
 
 app.post("/api/logs", (req, res) => {
   const {
@@ -137,12 +106,6 @@ app.post("/api/logs", (req, res) => {
   });
 });
 
-/*
-|--------------------------------------------------------------------------
-| Health Check
-|--------------------------------------------------------------------------
-*/
-
 app.get("/api/health", (req, res) => {
   res.status(200).json({
     success: true,
@@ -151,24 +114,12 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-/*
-|--------------------------------------------------------------------------
-| 404 Handler
-|--------------------------------------------------------------------------
-*/
-
 app.use((req, res) => {
   res.status(404).json({
     success: false,
     message: "Route not found",
   });
 });
-
-/*
-|--------------------------------------------------------------------------
-| Global Error Handler
-|--------------------------------------------------------------------------
-*/
 
 app.use((err, req, res, next) => {
   console.error(err);
@@ -178,5 +129,17 @@ app.use((err, req, res, next) => {
     message: err.message || "Internal Server Error",
   });
 });
+
+const PORT = process.env.PORT || 5000;
+
+const startServer = (port) => {
+  return app.listen(port, () => {
+    console.log(`CareBridge backend server running on port ${port}`);
+  });
+};
+
+if (process.env.NODE_ENV !== "test") {
+  startServer(PORT);
+}
 
 export default app;
