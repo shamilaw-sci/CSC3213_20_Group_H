@@ -31,7 +31,6 @@ export default function LoginPage() {
         );
       }
 
-      // --- CRITICAL STEP FOR MEMBER 401 ---
       // Store the JWT token & user info for the rest of the team
       localStorage.setItem("token", data.token);
 
