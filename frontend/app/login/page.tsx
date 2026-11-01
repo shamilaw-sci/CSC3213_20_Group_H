@@ -43,12 +43,15 @@ export default function LoginPage() {
       );
       localStorage.setItem("role", data.role);
 
+      // Role based smart redirection
       const role = String(data.role || "").toLowerCase();
 
-      if (role === "admin" || role === "supervisor") {
-        window.location.href = "/admin/dashboard";
+      if (role === "counsellor") {
+        router.replace("/counsellor/dashboard");
+      } else if (role === "admin" || role === "supervisor") {
+        router.replace("/admin/dashboard");
       } else {
-        window.location.href = "/dashboard";
+        router.replace("/dashboard"); // Student or anonymous view
       }
     } catch (err: any) {
       setError(err.message);
