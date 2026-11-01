@@ -64,7 +64,7 @@ export default function EmergencyButton() {
           setErrorMessage("");
           setModalOpen(true);
         }}
-        className="fixed bottom-6 right-6 z-50 bg-red-600 hover:bg-red-700 text-white font-bold px-5 py-4 rounded-full shadow-2xl flex items-center gap-2 animate-bounce transition-all cursor-pointer"
+        className="fixed bottom-6 right-6 z-50 bg-red-600 hover:bg-red-700 text-white font-bold px-5 py-4 rounded-full shadow-2xl flex items-center gap-2 animate-[bounce_2.5s_infinite] transition-all cursor-pointer"
       >
         🚨 EMERGENCY HELP
       </button>
