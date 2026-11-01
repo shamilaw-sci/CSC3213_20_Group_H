@@ -19,6 +19,7 @@ import { getToken, logout } from "@/services/api";
 export default function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [role, setRole] = useState<string | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -29,40 +30,25 @@ export default function Navbar() {
 
     if (token) {
       setIsLoggedIn(true);
+      setRole(role);
 
-      if (
-        role &&
-        ["admin", "supervisor"].includes(
-          role.toLowerCase()
-        )
-      ) {
+      if (role && ["admin", "supervisor"].includes(role.toLowerCase())) {
         setIsAdmin(true);
       }
     }
 
-    const handleClickOutside = (
-      event: MouseEvent
-    ) => {
+    const handleClickOutside = (event: MouseEvent) => {
       if (
         dropdownRef.current &&
-        !dropdownRef.current.contains(
-          event.target as Node
-        )
+        !dropdownRef.current.contains(event.target as Node)
       ) {
         setDropdownOpen(false);
       }
     };
 
-    document.addEventListener(
-      "mousedown",
-      handleClickOutside
-    );
+    document.addEventListener("mousedown", handleClickOutside);
 
-    return () =>
-      document.removeEventListener(
-        "mousedown",
-        handleClickOutside
-      );
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const handleLogout = () => {
@@ -73,10 +59,7 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-50 flex justify-between items-center px-6 md:px-12 py-4 bg-white shadow-sm">
       <div className="flex items-center gap-8">
-        <Link
-          href="/"
-          className="text-2xl font-bold text-blue-700"
-        >
+        <Link href="/" className="text-2xl font-bold text-blue-700">
           CareBridge
         </Link>
 
@@ -129,6 +112,16 @@ export default function Navbar() {
               <PhoneCall size={16} />
               Voice Call
             </Link>
+
+            {/* For easy access of counsellors */}
+            {role === "counsellor" && (
+              <Link
+                href="/counsellor/dashboard"
+                className="px-3 py-2 hover:bg-gray-100 rounded-lg"
+              >
+                Counsellor Portal
+              </Link>
+            )}
           </nav>
         )}
       </div>
@@ -136,10 +129,7 @@ export default function Navbar() {
       <div className="flex items-center">
         {!isLoggedIn ? (
           <div className="flex items-center gap-4">
-            <Link
-              href="/features"
-              className="hover:text-blue-600"
-            >
+            <Link href="/features" className="hover:text-blue-600">
               Features
             </Link>
 
@@ -151,28 +141,19 @@ export default function Navbar() {
             </Link>
           </div>
         ) : (
-          <div
-            className="relative"
-            ref={dropdownRef}
-          >
+          <div className="relative" ref={dropdownRef}>
             <button
-              onClick={() =>
-                setDropdownOpen(!dropdownOpen)
-              }
+              onClick={() => setDropdownOpen(!dropdownOpen)}
               className="flex items-center gap-2 px-3 py-2 rounded-full hover:bg-gray-100"
             >
               <User size={18} />
 
-              <span className="hidden sm:block">
-                Account
-              </span>
+              <span className="hidden sm:block">Account</span>
 
               <ChevronDown
                 size={16}
                 className={`transition-transform ${
-                  dropdownOpen
-                    ? "rotate-180"
-                    : ""
+                  dropdownOpen ? "rotate-180" : ""
                 }`}
               />
             </button>
@@ -182,9 +163,7 @@ export default function Navbar() {
                 {isAdmin && (
                   <Link
                     href="/admin/dashboard"
-                    onClick={() =>
-                      setDropdownOpen(false)
-                    }
+                    onClick={() => setDropdownOpen(false)}
                     className="flex items-center gap-2 px-4 py-3 hover:bg-gray-50"
                   >
                     <Shield size={16} />

@@ -31,7 +31,6 @@ export default function LoginPage() {
         );
       }
 
-      // --- CRITICAL STEP FOR MEMBER 401 ---
       // Store the JWT token & user info for the rest of the team
       localStorage.setItem("token", data.token);
 
@@ -44,12 +43,15 @@ export default function LoginPage() {
       );
       localStorage.setItem("role", data.role);
 
+      // Role based smart redirection
       const role = String(data.role || "").toLowerCase();
 
-      if (role === "admin" || role === "supervisor") {
-        window.location.href = "/admin/dashboard";
+      if (role === "counsellor") {
+        router.replace("/counsellor/dashboard");
+      } else if (role === "admin" || role === "supervisor") {
+        router.replace("/admin/dashboard");
       } else {
-        window.location.href = "/dashboard";
+        router.replace("/dashboard"); // Student or anonymous view
       }
     } catch (err: any) {
       setError(err.message);

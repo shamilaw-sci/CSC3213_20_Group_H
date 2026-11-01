@@ -3,7 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 
 import Navbar from "@/components/Navbar";
-import EmergencyButton from "@/components/EmergencyButton";
+import RootLayoutWrapper from "@/components/RootLayoutWrapper";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -28,8 +28,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <Navbar />
-        {children}
-        <EmergencyButton />
+        <RootLayoutWrapper>{children}</RootLayoutWrapper>
       </body>
     </html>
   );
