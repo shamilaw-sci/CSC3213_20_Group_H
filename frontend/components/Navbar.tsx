@@ -57,17 +57,20 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 flex justify-between items-center px-6 md:px-12 py-4 bg-white shadow-sm">
+    <header className="sticky top-0 z-50 flex justify-between items-center px-6 md:px-12 py-4 bg-white/95 backdrop-blur border-b border-gray-100 shadow-sm">
       <div className="flex items-center gap-8">
-        <Link href="/" className="text-2xl font-bold text-blue-700">
+        <Link
+          href="/"
+          className="text-2xl font-extrabold tracking-tight text-blue-700 transition-colors hover:text-blue-800"
+        >
           CareBridge
         </Link>
 
         {isLoggedIn && (
-          <nav className="hidden lg:flex items-center gap-2">
+          <nav className="hidden lg:flex items-center gap-1">
             <Link
               href="/chat"
-              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-600 transition-colors hover:bg-blue-50 hover:text-blue-700"
             >
               <MessageCircle size={16} />
               Chat
@@ -75,7 +78,7 @@ export default function Navbar() {
 
             <Link
               href="/dashboard"
-              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-600 transition-colors hover:bg-blue-50 hover:text-blue-700"
             >
               <LayoutDashboard size={16} />
               Overview
@@ -83,7 +86,7 @@ export default function Navbar() {
 
             <Link
               href="/booking"
-              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-600 transition-colors hover:bg-blue-50 hover:text-blue-700"
             >
               <Calendar size={16} />
               Booking
@@ -91,7 +94,7 @@ export default function Navbar() {
 
             <Link
               href="/availability-management"
-              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-600 transition-colors hover:bg-blue-50 hover:text-blue-700"
             >
               <Clock size={16} />
               Availability
@@ -99,7 +102,7 @@ export default function Navbar() {
 
             <Link
               href="/session-history"
-              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-600 transition-colors hover:bg-blue-50 hover:text-blue-700"
             >
               <History size={16} />
               History
@@ -107,7 +110,7 @@ export default function Navbar() {
 
             <Link
               href="/voice-call"
-              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-600 transition-colors hover:bg-blue-50 hover:text-blue-700"
             >
               <PhoneCall size={16} />
               Voice Call
@@ -117,7 +120,7 @@ export default function Navbar() {
             {role === "counsellor" && (
               <Link
                 href="/counsellor/dashboard"
-                className="px-3 py-2 hover:bg-gray-100 rounded-lg"
+                className="px-3 py-2 rounded-lg text-gray-600 transition-colors hover:bg-blue-50 hover:text-blue-700"
               >
                 Counsellor Portal
               </Link>
@@ -129,13 +132,16 @@ export default function Navbar() {
       <div className="flex items-center">
         {!isLoggedIn ? (
           <div className="flex items-center gap-4">
-            <Link href="/features" className="hover:text-blue-600">
+            <Link
+              href="/features"
+              className="text-gray-600 transition-colors hover:text-blue-600"
+            >
               Features
             </Link>
 
             <Link
               href="/login"
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+              className="rounded-full bg-blue-600 px-5 py-2 font-semibold text-white shadow-sm transition-colors hover:bg-blue-700"
             >
               Sign In
             </Link>
@@ -144,7 +150,7 @@ export default function Navbar() {
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center gap-2 px-3 py-2 rounded-full hover:bg-gray-100"
+              className="flex items-center gap-2 rounded-full border border-gray-200 px-3 py-2 text-gray-700 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
             >
               <User size={18} />
 
@@ -159,7 +165,7 @@ export default function Navbar() {
             </button>
 
             {dropdownOpen && (
-              <div className="absolute right-0 mt-2 w-56 bg-white border rounded-xl shadow-lg overflow-hidden">
+              <div className="absolute right-0 mt-2 w-56 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg">
                 {isAdmin && (
                   <Link
                     href="/admin/dashboard"
