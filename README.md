@@ -77,6 +77,7 @@ JWT_SECRET=your_jwt_secret
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
 GOOGLE_CALLBACK_URL=http://localhost:5050/api/auth/google/callback
+FRONTEND_URL=http://localhost:3000
 SENDGRID_API_KEY=your_sendgrid_api_key
 SENDGRID_FROM_EMAIL=alerts@example.com
 ON_CALL_COUNSELLOR_EMAILS=counsellor@example.com

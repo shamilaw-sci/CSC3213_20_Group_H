@@ -9,13 +9,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { Nunito } from "next/font/google";
 import { API_BASE_URL } from "../../../services/api";
-
-const nunito = Nunito({
-  subsets: ["latin"],
-  weight: ["400", "600", "700", "800"],
-});
 
 export default function AdminDashboardPage() {
   const [analytics, setAnalytics] = useState<any>(null);
@@ -65,7 +59,7 @@ export default function AdminDashboardPage() {
   if (loading)
     return (
       <div
-        className={`${nunito.className} p-12 text-gray-500 bg-gray-50 min-h-screen flex items-center justify-center font-semibold text-lg`}
+        className="p-12 text-gray-500 bg-gray-50 min-h-screen flex items-center justify-center font-semibold text-lg"
       >
         Loading Administration Portal...
       </div>
@@ -73,7 +67,7 @@ export default function AdminDashboardPage() {
   if (error)
     return (
       <div
-        className={`${nunito.className} p-12 text-rose-600 bg-gray-50 min-h-screen flex items-center justify-center font-semibold text-lg`}
+        className="p-12 text-rose-600 bg-gray-50 min-h-screen flex items-center justify-center font-semibold text-lg"
       >
         Access Error: {error}
       </div>
@@ -81,7 +75,7 @@ export default function AdminDashboardPage() {
 
   return (
     <div
-      className={`${nunito.className} p-8 md:p-12 space-y-8 bg-gray-50 text-gray-900 min-h-screen`}
+      className="p-8 md:p-12 space-y-8 bg-gray-50 text-gray-900 min-h-screen"
     >
       {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
