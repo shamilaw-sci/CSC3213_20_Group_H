@@ -1,44 +1,32 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 export default function GoogleCallback() {
-
   const router = useRouter();
-  const searchParams = useSearchParams();
-
 
   useEffect(() => {
-
+    const searchParams = new URLSearchParams(window.location.search);
     const token = searchParams.get("token");
     const userId = searchParams.get("userId");
     const role = searchParams.get("role");
 
-
-    if(token && userId && role){
-
+    if (token && userId && role) {
       localStorage.setItem("token", token);
-
       localStorage.setItem(
         "user",
         JSON.stringify({
           id: userId,
-          role: role
-        })
+          role,
+        }),
       );
-
-
+      localStorage.setItem("role", role);
       router.replace("/dashboard");
-
-    }
-    else{
+    } else {
       router.replace("/login");
     }
-
-
   }, []);
-
 
   return (
     <p>

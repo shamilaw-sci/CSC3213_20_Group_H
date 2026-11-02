@@ -91,9 +91,11 @@ router.get(
       );
 
 
-        res.redirect(
-`http://localhost:3001/auth/google/callback?token=${token}&userId=${userId}&role=${role}`
-);
+      const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+
+      res.redirect(
+        `${frontendUrl}/auth/google/callback?token=${encodeURIComponent(token)}&userId=${encodeURIComponent(userId)}&role=${encodeURIComponent(role)}`
+      );
 
 
     } catch(error){
