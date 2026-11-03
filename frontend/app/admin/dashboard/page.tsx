@@ -1,178 +1,352 @@
+
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
+import {
+  Shield,
+  Users,
+  UserCheck,
+  AlertTriangle,
+  FileText,
+  LogOut,
+} from "lucide-react";
 import { API_BASE_URL } from "@/services/api";
 
-export default function EmergencyButton() {
-  const [panelOpen, setPanelOpen] = useState(false);
-  const [holding, setHolding] = useState(false);
-  const [holdProgress, setHoldProgress] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [acknowledged, setAcknowledged] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+type AdminStats = {
+  totalStudents?: number;
+  totalCounsellors?: number;
+  activeEmergencies?: number;
+  pendingVerifications?: number;
+};
 
-  const holdTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+type AdminAnalytics = {
+  success: boolean;
+  stats?: AdminStats;
+  charts?: {
+    severityStats?: {
+      severity_score: number;
+      count: number;
+    }[];
+  };
+};
 
-  const handlePressStart = () => {
-    if (loading) return;
-    setHolding(true);
-    setHoldProgress(0);
+export default function AdminDashboardPage() {
+  const router = useRouter();
 
-    const duration = 3000;
-    const intervalTime = 30;
-    let elapsed = 0;
+  const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-    progressIntervalRef.current = setInterval(() => {
-      elapsed += intervalTime;
-      const progress = Math.min((elapsed / duration) * 100, 100);
-      setHoldProgress(progress);
-    }, intervalTime);
+  useEffect(() => {
+    const fetchAdminData = async () => {
+      const token = localStorage.getItem("token");
 
-    holdTimerRef.current = setTimeout(() => {
-      handleEmergencyTrigger();
-      handlePressEnd();
-    }, duration);
+      let user;
+
+      try {
+        user = JSON.parse(localStorage.getItem("user") || "{}");
+      } catch {
+        router.replace("/login");
+        return;
+      }
+
+      if (
+        !token ||
+        !["admin", "supervisor"].includes(user.role?.toLowerCase())
+      ) {
+        router.replace("/login");
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/api/admin/analytics`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch analytics or unauthorized.");
+        }
+
+        const data = await response.json();
+
+        if (!data.success) {
+          throw new Error("Unable to load administrative analytics.");
+        }
+
+        setAnalytics(data);
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "An error occurred while loading dashboard analytics."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAdminData();
+  }, [router]);
+
+  const handleLogout = () => {
+    localStorage.clear();
+    router.replace("/login");
   };
 
-  const handlePressEnd = () => {
-    setHolding(false);
-    setHoldProgress(0);
-    if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
-    if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-  };
-
-  const handleEmergencyTrigger = async () => {
-    setLoading(true);
-    setErrorMessage("");
-
+  const handleDownloadReport = async (format: "csv" | "pdf") => {
     try {
       const token = localStorage.getItem("token");
-      const headers: HeadersInit = {
-        "Content-Type": "application/json",
-      };
 
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
-
-      // Matches backend POST /api/emergency endpoint structure
-      const response = await fetch(`${API_BASE_URL}/api/emergency`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          description: "Crisis panic button triggered (Press-and-Hold)",
-          severityScore: "CRITICAL",
-          timestamp: new Date().toISOString(),
-        }),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/api/admin/reports/${format}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.message || "Failed to dispatch emergency call.",
-        );
+        throw new Error("Download failed");
       }
 
-      setPanelOpen(false);
-      setAcknowledged(true);
-      setTimeout(() => setAcknowledged(false), 7000);
-    } catch (error) {
-      console.error("Failed to dispatch emergency call", error);
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "An error occurred while alerting support.",
-      );
-    } finally {
-      setLoading(false);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `system-report.${format}`;
+
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Report download failed:", err);
+      alert("Could not download report.");
     }
   };
 
+  if (loading) {
+    return (
+      <div className="p-12 text-gray-500 bg-gray-50 min-h-screen flex items-center justify-center font-semibold text-lg">
+        Loading Administration Portal...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-12 text-rose-600 bg-gray-50 min-h-screen flex flex-col items-center justify-center gap-4 font-semibold text-lg">
+        <p>Access Error: {error}</p>
+        <button
+          onClick={handleLogout}
+          className="px-4 py-2 bg-gray-900 text-white rounded-xl text-sm"
+        >
+          Back to Login
+        </button>
+      </div>
+    );
+  }
+
+  const stats = analytics?.stats || {};
+
   return (
-    <>
-      <button
-        onClick={() => {
-          setErrorMessage("");
-          setPanelOpen(true);
-        }}
-        className="fixed bottom-6 right-6 z-50 flex cursor-pointer items-center gap-3 rounded-full bg-red-600 px-6 py-4 font-extrabold text-white shadow-2xl transition-all hover:bg-red-700"
-        aria-label="Emergency Help"
-      >
-        <span className="text-xl">🚨</span> EMERGENCY HELP
-      </button>
+    <div className="min-h-screen bg-gray-50 p-6 md:p-12 font-sans text-gray-900">
+      <div className="max-w-7xl mx-auto space-y-8">
 
-      {panelOpen && (
-        <div className="fixed inset-0 z-50 flex animate-fade-in items-center justify-center bg-black/70 p-4 backdrop-blur-md">
-          <div className="w-full max-w-lg rounded-3xl bg-white p-8 text-center shadow-2xl">
-            <div className="mb-2 text-4xl">⚠️</div>
-            <h2 className="mb-3 text-2xl font-black tracking-tight text-red-600">
-              For Immediate Crisis Support
-            </h2>
-            <p className="mb-6 text-base font-bold text-gray-800">
-              “Are you in immediate danger or thinking about harming yourself?”
-            </p>
-
-            {errorMessage && (
-              <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-600">
-                {errorMessage}
-              </div>
-            )}
-
-            <div className="mb-6 flex flex-col items-center">
-              <p className="mb-2 text-xs font-semibold text-gray-500">
-                Press and hold for 3 seconds to confirm emergency dispatch:
-              </p>
-              <button
-                onMouseDown={handlePressStart}
-                onMouseUp={handlePressEnd}
-                onMouseLeave={handlePressEnd}
-                onTouchStart={handlePressStart}
-                onTouchEnd={handlePressEnd}
-                disabled={loading}
-                className="relative w-full cursor-pointer select-none overflow-hidden rounded-2xl bg-red-600 py-4 font-extrabold text-white shadow-lg transition-all hover:bg-red-700 disabled:opacity-50"
-              >
-                {holding && (
-                  <div
-                    className="pointer-events-none absolute bottom-0 left-0 top-0 bg-red-900/50 transition-all duration-75"
-                    style={{ width: `${holdProgress}%` }}
-                  />
-                )}
-                <span className="relative z-10 text-base">
-                  {loading
-                    ? "Transmitting Emergency Alert..."
-                    : holding
-                      ? `Hold Steady... (${Math.ceil((3000 - holdProgress * 30) / 1000)}s)`
-                      : "🔒 HOLD TO DISPATCH EMERGENCY"}
-                </span>
-              </button>
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <div className="flex items-center gap-3">
+            <div className="bg-blue-100 p-3 rounded-xl text-blue-600">
+              <Shield size={28} />
             </div>
 
-            <div className="flex flex-col justify-center gap-3 sm:flex-row">
-              <button
-                onClick={() => setPanelOpen(false)}
-                disabled={loading}
-                className="cursor-pointer rounded-xl bg-gray-100 px-5 py-3 text-sm font-bold text-gray-700 transition-all hover:bg-gray-200"
-              >
-                Cancel / I am safe
-              </button>
-              <a
-                href="/support-options"
-                onClick={() => setPanelOpen(false)}
-                className="flex cursor-pointer items-center justify-center rounded-xl bg-blue-50 px-5 py-3 text-sm font-bold text-blue-700 transition-all hover:bg-blue-100"
-              >
-                I need support, but it’s not urgent
-              </a>
+            <div>
+              <h1 className="text-2xl font-extrabold tracking-tight">
+                Admin Oversight & Monitoring
+              </h1>
+              <p className="text-gray-500 text-sm mt-1">
+                Manage platform accounts, review metrics, and generate audit
+                reports securely.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 px-4 py-2.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl font-semibold text-sm transition-all"
+          >
+            <LogOut size={16} />
+            Logout
+          </button>
+        </div>
+
+        {/* Analytics Overview */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+
+          {/* Total Students */}
+          <div className="p-6 bg-white border border-gray-100 rounded-2xl shadow-sm flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-gray-500">
+                Total Students & Anonymous
+              </p>
+              <h3 className="text-3xl font-black mt-2 text-gray-900">
+                {stats.totalStudents || 0}
+              </h3>
+            </div>
+            <div className="bg-emerald-50 p-3 rounded-xl text-emerald-600">
+              <Users size={24} />
+            </div>
+          </div>
+
+          {/* Active Counsellors */}
+          <div className="p-6 bg-white border border-gray-100 rounded-2xl shadow-sm flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-gray-500">
+                Active Counsellors
+              </p>
+              <h3 className="text-3xl font-black mt-2 text-gray-900">
+                {stats.totalCounsellors || 0}
+              </h3>
+            </div>
+            <div className="bg-indigo-50 p-3 rounded-xl text-indigo-600">
+              <UserCheck size={24} />
+            </div>
+          </div>
+
+          {/* Active Emergencies */}
+          <div className="p-6 bg-white border border-gray-100 rounded-2xl shadow-sm flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-gray-500">
+                Pending Crisis Alerts
+              </p>
+              <h3 className="text-3xl font-black mt-2 text-rose-600">
+                {stats.activeEmergencies || 0}
+              </h3>
+            </div>
+            <div className="bg-red-50 p-3 rounded-xl text-red-600">
+              <AlertTriangle size={24} />
+            </div>
+          </div>
+
+          {/* Pending Verifications */}
+          <div className="p-6 bg-white border border-gray-100 rounded-2xl shadow-sm flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-gray-500">
+                Pending Verifications
+              </p>
+              <h3 className="text-3xl font-black mt-2 text-amber-600">
+                {stats.pendingVerifications || 0}
+              </h3>
+            </div>
+            <div className="bg-amber-50 p-3 rounded-xl text-amber-600">
+              <FileText size={24} />
             </div>
           </div>
         </div>
-      )}
 
-      {acknowledged && (
-        <div className="fixed left-1/2 top-6 z-50 -translate-x-1/2 animate-bounce rounded-2xl bg-emerald-600 px-6 py-4 text-sm font-bold tracking-wide text-white shadow-2xl">
-          ✓ Help request received. An emergency responder has been alerted. Please stay calm.
+        {/* Emergency Severity Visualization */}
+        <div className="p-6 bg-white border border-gray-100 rounded-2xl shadow-sm">
+          <h2 className="text-xl font-bold mb-6 text-gray-800">
+            Emergency Incident Severity Trends
+          </h2>
+
+          <div className="h-80 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={analytics?.charts?.severityStats || []}
+              >
+                <XAxis
+                  dataKey="severity_score"
+                  stroke="#9ca3af"
+                  tick={{ fill: "#4b5563" }}
+                />
+                <YAxis
+                  stroke="#9ca3af"
+                  tick={{ fill: "#4b5563" }}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#ffffff",
+                    borderColor: "#e5e7eb",
+                    borderRadius: "12px",
+                    boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                  }}
+                />
+                <Bar
+                  dataKey="count"
+                  fill="#4f46e5"
+                  radius={[8, 8, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
-      )}
-    </>
+
+        {/* Management & Reports */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+          {/* Professional Verification Queue */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <h2 className="text-lg font-bold text-gray-900 mb-4">
+              Professional Verification Queue (WBS 7.2)
+            </h2>
+
+            <p className="text-sm text-gray-500 mb-4">
+              Review submitted counsellor credentials and licensing documents.
+            </p>
+
+            <div className="p-4 bg-gray-50 rounded-xl border text-center text-sm text-gray-600">
+              No pending counsellor verification requests at this moment.
+            </div>
+          </div>
+
+          {/* System Reports & Exports */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <h2 className="text-lg font-bold text-gray-900 mb-4">
+              System Reports & Exports (WBS 7.4)
+            </h2>
+
+            <p className="text-sm text-gray-500 mb-4">
+              Generate and download platform activity summaries and trend
+              reports.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-4">
+              <button
+                onClick={() => handleDownloadReport("csv")}
+                className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold text-sm shadow transition-all"
+              >
+                Export CSV Report
+              </button>
+
+              <button
+                onClick={() => handleDownloadReport("pdf")}
+                className="flex-1 py-3 bg-gray-900 hover:bg-gray-800 text-white rounded-xl font-semibold text-sm shadow transition-all"
+              >
+                Export PDF Summary
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
   );
 }
