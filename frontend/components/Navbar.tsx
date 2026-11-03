@@ -134,15 +134,6 @@ export default function Navbar() {
               Voice Call
             </Link>
 
-            {/* For easy access of counsellors */}
-            {role === "counsellor" && (
-              <Link
-                href="/counsellor/dashboard"
-                className="px-3 py-2 rounded-lg text-gray-600 transition-colors hover:bg-blue-50 hover:text-blue-700"
-              >
-                Counsellor Portal
-              </Link>
-            )}
           </nav>
         )}
       </div>
@@ -192,6 +183,17 @@ export default function Navbar() {
                   >
                     <Shield size={16} />
                     Admin Dashboard
+                  </Link>
+                )}
+
+                {role === "counsellor" && (
+                  <Link
+                    href="/counsellor/dashboard"
+                    onClick={() => setDropdownOpen(false)}
+                    className="flex items-center gap-2 px-4 py-3 hover:bg-gray-50"
+                  >
+                    <LayoutDashboard size={16} />
+                    Counsellor Portal
                   </Link>
                 )}
 
