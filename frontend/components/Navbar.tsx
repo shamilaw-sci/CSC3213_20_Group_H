@@ -25,17 +25,28 @@ export default function Navbar() {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const token = getToken();
-    const role = localStorage.getItem("role");
+    const syncAuthState = () => {
+      const token = getToken();
+      const currentRole = localStorage.getItem("role");
 
-    if (token) {
-      setIsLoggedIn(true);
-      setRole(role);
+      setIsLoggedIn(!!token);
+      setRole(currentRole);
 
-      if (role && ["admin", "supervisor"].includes(role.toLowerCase())) {
-        setIsAdmin(true);
-      }
-    }
+      setIsAdmin(
+        !!token &&
+          !!currentRole &&
+          ["admin", "supervisor"].includes(currentRole.toLowerCase()),
+      );
+    };
+
+    // Check authentication when Navbar mounts
+    syncAuthState();
+
+    // Listen for login/logout changes in this tab
+    window.addEventListener("authChange", syncAuthState);
+
+    // Handle authentication changes from another browser tab
+    window.addEventListener("storage", syncAuthState);
 
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -48,11 +59,18 @@ export default function Navbar() {
 
     document.addEventListener("mousedown", handleClickOutside);
 
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    return () => {
+      window.removeEventListener("authChange", syncAuthState);
+      window.removeEventListener("storage", syncAuthState);
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, []);
 
   const handleLogout = () => {
     logout();
+
+    window.dispatchEvent(new Event("authChange"));
+
     window.location.href = "/login";
   };
 

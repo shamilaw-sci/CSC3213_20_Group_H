@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -68,14 +67,11 @@ export default function AdminDashboardPage() {
       }
 
       try {
-        const response = await fetch(
-          `${API_BASE_URL}/api/admin/analytics`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        const response = await fetch(`${API_BASE_URL}/api/admin/analytics`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
         if (!response.ok) {
           throw new Error("Failed to fetch analytics or unauthorized.");
@@ -92,7 +88,7 @@ export default function AdminDashboardPage() {
         setError(
           err instanceof Error
             ? err.message
-            : "An error occurred while loading dashboard analytics."
+            : "An error occurred while loading dashboard analytics.",
         );
       } finally {
         setLoading(false);
@@ -117,7 +113,7 @@ export default function AdminDashboardPage() {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       if (!response.ok) {
@@ -169,7 +165,6 @@ export default function AdminDashboardPage() {
   return (
     <div className="min-h-screen bg-gray-50 p-6 md:p-12 font-sans text-gray-900">
       <div className="max-w-7xl mx-auto space-y-8">
-
         {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
           <div className="flex items-center gap-3">
@@ -199,7 +194,6 @@ export default function AdminDashboardPage() {
 
         {/* Analytics Overview */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-
           {/* Total Students */}
           <div className="p-6 bg-white border border-gray-100 rounded-2xl shadow-sm flex items-center justify-between">
             <div>
@@ -269,18 +263,13 @@ export default function AdminDashboardPage() {
 
           <div className="h-80 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={analytics?.charts?.severityStats || []}
-              >
+              <BarChart data={analytics?.charts?.severityStats || []}>
                 <XAxis
                   dataKey="severity_score"
                   stroke="#9ca3af"
                   tick={{ fill: "#4b5563" }}
                 />
-                <YAxis
-                  stroke="#9ca3af"
-                  tick={{ fill: "#4b5563" }}
-                />
+                <YAxis stroke="#9ca3af" tick={{ fill: "#4b5563" }} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: "#ffffff",
@@ -289,11 +278,7 @@ export default function AdminDashboardPage() {
                     boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                   }}
                 />
-                <Bar
-                  dataKey="count"
-                  fill="#4f46e5"
-                  radius={[8, 8, 0, 0]}
-                />
+                <Bar dataKey="count" fill="#4f46e5" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -301,11 +286,10 @@ export default function AdminDashboardPage() {
 
         {/* Management & Reports */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-
           {/* Professional Verification Queue */}
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <h2 className="text-lg font-bold text-gray-900 mb-4">
-              Professional Verification Queue (WBS 7.2)
+              Professional Verification Queue
             </h2>
 
             <p className="text-sm text-gray-500 mb-4">
@@ -320,7 +304,7 @@ export default function AdminDashboardPage() {
           {/* System Reports & Exports */}
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <h2 className="text-lg font-bold text-gray-900 mb-4">
-              System Reports & Exports (WBS 7.4)
+              System Reports & Exports
             </h2>
 
             <p className="text-sm text-gray-500 mb-4">
@@ -345,7 +329,6 @@ export default function AdminDashboardPage() {
             </div>
           </div>
         </div>
-
       </div>
     </div>
   );
