@@ -10,6 +10,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { API_BASE_URL } from "@/services/api";
+import socket, { joinAdminRoom } from "@/services/socket";
 import { Users, UserCheck, AlertTriangle, ShieldCheck, UserX, CheckCircle, FileText } from "lucide-react";
 
 export default function AdminDashboardPage() {
@@ -35,6 +36,19 @@ export default function AdminDashboardPage() {
         setError(err.message);
         setLoading(false);
       });
+  }, []);
+
+  useEffect(() => {
+    const handleUsersUpdated = () => {
+      window.location.reload();
+    };
+
+    joinAdminRoom();
+    socket.on("usersUpdated", handleUsersUpdated);
+
+    return () => {
+      socket.off("usersUpdated", handleUsersUpdated);
+    };
   }, []);
 
   const handleVerifyCounsellor = async (counsellorId: number) => {

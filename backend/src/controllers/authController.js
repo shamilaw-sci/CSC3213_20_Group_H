@@ -39,6 +39,8 @@ export const register = async (req, res) => {
             { expiresIn: '1h' }
         );
 
+        global.io?.to('admin-room').emit('usersUpdated');
+
         return res.status(201).json({
             message: 'Registration successful.',
             token,
@@ -137,6 +139,8 @@ export const anonymousLogin = async (req, res) => {
                 isAnonymous: true
             }
         });
+
+        global.io?.to('admin-room').emit('usersUpdated');
 
     } catch(error) {
         console.error("Anonymous login error:", error);

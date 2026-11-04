@@ -2,6 +2,8 @@ import http from "http";
 import app from "./app.js";
 import { Server } from "socket.io";
 import pool, { testConnection } from "./config/db.js";
+import jwt from "jsonwebtoken";
+import { SECRET } from "./config.js";
 
 const PORT = process.env.PORT || 5000;
 
@@ -22,6 +24,17 @@ io.on("connection", (socket) => {
 
   socket.on("joinRoom", (roomId) => {
     socket.join(roomId);
+  });
+
+  socket.on("joinAdminRoom", (token) => {
+    try {
+      const user = jwt.verify(token, SECRET);
+      if (["admin", "supervisor"].includes(String(user.role).toLowerCase())) {
+        socket.join("admin-room");
+      }
+    } catch (error) {
+      console.error("Admin socket authentication failed:", error.message);
+    }
   });
 
   socket.on("callUser", (data) => {
