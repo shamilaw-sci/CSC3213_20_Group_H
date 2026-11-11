@@ -18,7 +18,7 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [studentFilter, setStudentFilter] = useState<"all" | "registered" | "anonymous">("all");
-
+  
   useEffect(() => {
     const token = localStorage.getItem("token");
     fetch(`${API_BASE_URL}/api/admin/analytics`, {
