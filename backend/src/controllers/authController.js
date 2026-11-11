@@ -60,6 +60,7 @@ export const register = async (req, res) => {
         const token = jwt.sign(
             {
                 id: result.insertId,
+                name: name,
                 role: 'Student'
             },
             secretKey,
@@ -71,6 +72,7 @@ export const register = async (req, res) => {
             token,
             user: {
                 id: result.insertId,
+                name: name,
                 role: 'Student'
             }
         });
@@ -95,7 +97,7 @@ export const login = async (req, res) => {
 
     try {
         const [rows] = await db.query(
-            'SELECT `id` as `userId`, `email`, `password`, `role` FROM `users` WHERE `email` = ?',
+            'SELECT `id` as `userId`, `name`, `email`, `password`, `role` FROM `users` WHERE `email` = ?',
             [email]
         );
 
@@ -119,6 +121,7 @@ export const login = async (req, res) => {
 
         const payload = {
             id: user.userId,
+            name: user.name,
             role: user.role
         };
 
@@ -168,6 +171,7 @@ export const anonymousLogin = async (req, res) => {
         const token = jwt.sign(
             {
                 id: result.insertId,
+                name: 'Anonymous User',
                 role: 'anonymous'
             },
             secretKey,
@@ -179,6 +183,7 @@ export const anonymousLogin = async (req, res) => {
             token,
             user: {
                 id: result.insertId,
+                name: 'Anonymous User',
                 anonymousId,
                 role: 'anonymous',
                 isAnonymous: true

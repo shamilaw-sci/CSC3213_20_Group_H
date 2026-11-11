@@ -54,16 +54,18 @@ router.get(
 
       // Check if Google user already exists
       const [existingUsers] = await db.query(
-        'SELECT id, role FROM users WHERE email = ?',
-        [email]
+          'SELECT id, name, role FROM users WHERE email = ?',
+          [email]
       );
 
       let userId;
+      let userName = name;
       let role = "Student";
 
       if (existingUsers.length > 0) {
 
         userId = existingUsers[0].id;
+        userName = existingUsers[0].name;
         role = existingUsers[0].role;
 
       } else {
@@ -87,7 +89,8 @@ router.get(
       // Generate CareBridge JWT
       const token = jwt.sign(
         {
-          userId,
+          id: userId,
+          name: userName,
           role
         },
         process.env.JWT_SECRET,

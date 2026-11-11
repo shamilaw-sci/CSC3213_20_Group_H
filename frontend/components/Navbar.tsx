@@ -16,38 +16,70 @@ import {
 } from "lucide-react";
 import { getToken, logout } from "@/services/api";
 
+interface JwtPayload {
+  id?: number;
+  name?: string;
+  role?: string;
+}
+
+function decodeToken(token: string): JwtPayload | null {
+  try {
+    const payload = token.split(".")[1];
+
+    if (!payload) return null;
+
+    const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const decoded = atob(base64);
+    const bytes = Uint8Array.from(decoded, (char) => char.charCodeAt(0));
+
+    return JSON.parse(new TextDecoder().decode(bytes)) as JwtPayload;
+  } catch {
+    return null;
+  }
+}
+
 export default function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [userName, setUserName] = useState("");
+  const [userRole, setUserRole] = useState("");
 
   useEffect(() => {
-    const token = getToken();
-    const role = localStorage.getItem("role");
+  const token = getToken();
 
-    if (token) {
+  if (token) {
+    const decoded = decodeToken(token);
+
+    if (decoded) {
       setIsLoggedIn(true);
-      if (
-        role &&
-        (role.toLowerCase() === "admin" || role.toLowerCase() === "supervisor")
-      ) {
+      setUserName(decoded.name || "User");
+
+      const role = (decoded.role || "").toLowerCase();
+      setUserRole(role);
+
+      if (role === "admin" || role === "supervisor") {
         setIsAdmin(true);
       }
     }
+  }
 
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setDropdownOpen(false);
-      }
-    };
+  const handleClickOutside = (event: MouseEvent) => {
+    if (
+      dropdownRef.current &&
+      !dropdownRef.current.contains(event.target as Node)
+    ) {
+      setDropdownOpen(false);
+    }
+  };
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  document.addEventListener("mousedown", handleClickOutside);
+
+  return () => {
+    document.removeEventListener("mousedown", handleClickOutside);
+  };
+}, []);
 
   const handleLogout = () => {
     logout();
@@ -65,46 +97,80 @@ export default function Navbar() {
           CareBridge
         </Link>
 
+
         {isLoggedIn && (
           <nav className="hidden lg:flex items-center gap-1 text-xs font-semibold text-gray-600">
-            <Link
-              href="/chat"
-              className="px-3 py-1.5 rounded-lg hover:text-indigo-600 hover:bg-gray-50 transition-all flex items-center gap-1.5"
-            >
-              <MessageCircle size={14} /> Chat
-            </Link>
-            <Link
-              href="/dashboard"
-              className="px-3 py-1.5 rounded-lg hover:text-indigo-600 hover:bg-gray-50 transition-all flex items-center gap-1.5"
-            >
-              <LayoutDashboard size={14} /> Overview
-            </Link>
-            <Link
-              href="/booking"
-              className="px-3 py-1.5 rounded-lg hover:text-indigo-600 hover:bg-gray-50 transition-all flex items-center gap-1.5"
-            >
-              <Calendar size={14} /> Booking
-            </Link>
-            <Link
-              href="/availability"
-              className="px-3 py-1.5 rounded-lg hover:text-indigo-600 hover:bg-gray-50 transition-all flex items-center gap-1.5"
-            >
-              <Clock size={14} /> Availability
-            </Link>
-            <Link
-              href="/session-history"
-              className="px-3 py-1.5 rounded-lg hover:text-indigo-600 hover:bg-gray-50 transition-all flex items-center gap-1.5"
-            >
-              <History size={14} /> History
-            </Link>
-            <Link
-              href="/voice-call"
-              className="px-3 py-1.5 rounded-lg hover:text-indigo-600 hover:bg-gray-50 transition-all flex items-center gap-1.5"
-            >
-              <PhoneCall size={14} /> Voice Call
-            </Link>
+
+            {/* Student Navigation */}
+            {userRole === "student" && (
+              <>
+                <Link href="/chat" className="px-3 py-1.5 rounded-lg hover:text-indigo-600 hover:bg-gray-50 transition-all flex items-center gap-1.5">
+                  <MessageCircle size={14} /> Chat
+                </Link>
+
+                <Link href="/dashboard" className="px-3 py-1.5 rounded-lg hover:text-indigo-600 hover:bg-gray-50 transition-all flex items-center gap-1.5">
+                  <LayoutDashboard size={14} /> Dashboard
+                </Link>
+
+                <Link href="/booking" className="px-3 py-1.5 rounded-lg hover:text-indigo-600 hover:bg-gray-50 transition-all flex items-center gap-1.5">
+                  <Calendar size={14} /> Booking
+                </Link>
+
+                <Link href="/session-history" className="px-3 py-1.5 rounded-lg hover:text-indigo-600 hover:bg-gray-50 transition-all flex items-center gap-1.5">
+                  <History size={14} /> History
+                </Link>
+
+                <Link href="/voice-call" className="px-3 py-1.5 rounded-lg hover:text-indigo-600 hover:bg-gray-50 transition-all flex items-center gap-1.5">
+                  <PhoneCall size={14} /> Voice Call
+                </Link>
+              </>
+            )}
+
+            {/* Anonymous Navigation */}
+            {userRole === "anonymous" && (
+              <Link href="/chat" className="px-3 py-1.5 rounded-lg hover:text-indigo-600 hover:bg-gray-50 transition-all flex items-center gap-1.5">
+                <MessageCircle size={14} /> Chat
+              </Link>
+            )}
+
+                        {/* Counsellor Navigation */}
+            {userRole === "counsellor" && (
+              <>
+                <Link
+                  href="/counsellor/dashboard"
+                  className="px-3 py-1.5 rounded-lg hover:text-indigo-600 hover:bg-gray-50 transition-all flex items-center gap-1.5"
+                >
+                  <LayoutDashboard size={14} /> Counsellor Dashboard
+                </Link>
+
+                <Link
+                  href="/booking"
+                  className="px-3 py-1.5 rounded-lg hover:text-indigo-600 hover:bg-gray-50 transition-all flex items-center gap-1.5"
+                >
+                  <Calendar size={14} /> Appointments
+                </Link>
+
+                <Link
+                  href="/availability"
+                  className="px-3 py-1.5 rounded-lg hover:text-indigo-600 hover:bg-gray-50 transition-all flex items-center gap-1.5"
+                >
+                  <Clock size={14} /> Availability
+                </Link>
+              </>
+            )}
+            {isAdmin && (
+              <Link
+                href="/admin/dashboard"
+                onClick={() => setDropdownOpen(false)}
+                className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-indigo-600 hover:bg-gray-50 transition-colors"
+              >
+                <Shield size={14} /> Admin Dashboard
+              </Link>
+            )}
+
           </nav>
         )}
+
       </div>
 
       {/* Right Action Section */}
@@ -146,8 +212,8 @@ export default function Navbar() {
                 <User size={14} />
               </div>
               <span className="text-xs font-semibold hidden sm:inline">
-                Account
-              </span>
+              {userName || "Account"}
+            </span>
               <ChevronDown
                 size={13}
                 className={`text-gray-400 transition-transform ${dropdownOpen ? "rotate-180" : ""}`}
@@ -156,6 +222,14 @@ export default function Navbar() {
 
             {dropdownOpen && (
               <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-2xl shadow-lg py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                <div className="px-4 py-3 border-b border-gray-100">
+                  <p className="text-sm font-bold text-gray-800">
+                    {userName || "User"}
+                  </p>
+                  <p className="text-xs text-gray-500 capitalize">
+                    {userRole}
+                  </p>
+                </div>
                 {isAdmin && (
                   <Link
                     href="/admin/dashboard"
@@ -167,6 +241,28 @@ export default function Navbar() {
                 )}
 
                 <div className="border-t border-gray-50 my-1"></div>
+
+                {userRole === "counsellor" && (
+                  <>
+                    <Link
+                      href="/counsellor/dashboard"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                    >
+                      <LayoutDashboard size={14} />
+                      Counsellor Dashboard
+                    </Link>
+
+                    <Link
+                      href="/availability"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                    >
+                      <Clock size={14} />
+                      Availability
+                    </Link>
+                  </>
+                )}
 
                 <button
                   onClick={handleLogout}
