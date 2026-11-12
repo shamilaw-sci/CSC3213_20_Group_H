@@ -39,6 +39,7 @@ export default function LoginPage() {
         "user",
         JSON.stringify({
           id: data.userId,
+          name: data.name || "User",
           role: data.role,
         }),
       );
@@ -49,7 +50,7 @@ export default function LoginPage() {
       if (role === "admin" || role === "supervisor") {
         window.location.href = "/admin/dashboard";
       } else if (role === "student") {
-        window.location.href = "/student/dashboard";
+        window.location.href = "/chat";
       } else if (role === "counsellor") {
         window.location.href = "/counsellor/dashboard";
       } else {
@@ -89,6 +90,8 @@ export default function LoginPage() {
       localStorage.setItem("user", JSON.stringify(anonymousUser));
       localStorage.setItem("role", "student");
       localStorage.setItem("userId", data.anonymousId);
+
+      window.dispatchEvent(new Event("auth-changed"));
 
       router.replace("/student/dashboard");
 

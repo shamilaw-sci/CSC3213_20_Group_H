@@ -47,38 +47,53 @@ export default function Navbar() {
   const [userRole, setUserRole] = useState("");
 
   useEffect(() => {
-  const token = getToken();
+    const checkUser = () => {
+        const token = getToken();
 
-  if (token) {
-    const decoded = decodeToken(token);
+        if (token) {
+            const decoded = decodeToken(token);
 
-    if (decoded) {
-      setIsLoggedIn(true);
-      setUserName(decoded.name || "User");
+            if (decoded) {
+                setIsLoggedIn(true);
+                setUserName(decoded.name || "User");
 
-      const role = (decoded.role || "").toLowerCase();
-      setUserRole(role);
+                const role = (decoded.role || "").toLowerCase();
+                setUserRole(role);
 
-      if (role === "admin" || role === "supervisor") {
-        setIsAdmin(true);
-      }
-    }
-  }
+                setIsAdmin(role === "admin" || role === "supervisor");
+            } else {
+                setIsLoggedIn(false);
+                setUserName("");
+                setUserRole("");
+                setIsAdmin(false);
+            }
+        } else {
+            setIsLoggedIn(false);
+            setUserName("");
+            setUserRole("");
+            setIsAdmin(false);
+        }
+    };
 
-  const handleClickOutside = (event: MouseEvent) => {
-    if (
-      dropdownRef.current &&
-      !dropdownRef.current.contains(event.target as Node)
-    ) {
-      setDropdownOpen(false);
-    }
-  };
+    checkUser();
 
-  document.addEventListener("mousedown", handleClickOutside);
+    window.addEventListener("auth-changed", checkUser);
 
-  return () => {
-    document.removeEventListener("mousedown", handleClickOutside);
-  };
+    const handleClickOutside = (event: MouseEvent) => {
+        if (
+            dropdownRef.current &&
+            !dropdownRef.current.contains(event.target as Node)
+        ) {
+            setDropdownOpen(false);
+        }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+        window.removeEventListener("auth-changed", checkUser);
+        document.removeEventListener("mousedown", handleClickOutside);
+    };
 }, []);
 
   const handleLogout = () => {
@@ -108,7 +123,7 @@ export default function Navbar() {
                   <MessageCircle size={14} /> Chat
                 </Link>
 
-                <Link href="/dashboard" className="px-3 py-1.5 rounded-lg hover:text-indigo-600 hover:bg-gray-50 transition-all flex items-center gap-1.5">
+                <Link href="/student/dashboard" className="px-3 py-1.5 rounded-lg hover:text-indigo-600 hover:bg-gray-50 transition-all flex items-center gap-1.5">
                   <LayoutDashboard size={14} /> Dashboard
                 </Link>
 
@@ -209,7 +224,11 @@ export default function Navbar() {
               className="flex items-center gap-2.5 py-1 px-2.5 rounded-full hover:bg-gray-50 transition-all cursor-pointer text-gray-700"
             >
               <div className="w-7 h-7 rounded-full bg-gray-100 text-gray-700 flex items-center justify-center font-bold text-xs">
-                <User size={14} />
+                {userRole === "admin" || userRole === "supervisor" ? (
+                  <Shield size={14} />
+                ) : (
+                  <User size={14} />
+                )}
               </div>
               <span className="text-xs font-semibold hidden sm:inline">
               {userName || "Account"}
@@ -262,6 +281,16 @@ export default function Navbar() {
                       Availability
                     </Link>
                   </>
+                )}
+
+                {userRole === "anonymous" && (
+                  <Link
+                    href="/login"
+                    onClick={() => setDropdownOpen(false)}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-xs font-semibold text-indigo-600 hover:bg-indigo-50 transition-colors"
+                  >
+                    <User size={14} /> Sign In
+                  </Link>
                 )}
 
                 <button
