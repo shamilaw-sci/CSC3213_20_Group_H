@@ -10,6 +10,11 @@ const socket: Socket = io(API_BASE_URL, {
   reconnectionDelay: 1000,
 });
 
+export function joinAdminRoom() {
+  const token = localStorage.getItem("token");
+  if (token) socket.emit("joinAdminRoom", token);
+}
+
 socket.on("connect", () => {
   console.log("✅ Socket connected:", socket.id);
 });

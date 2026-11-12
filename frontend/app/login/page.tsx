@@ -43,6 +43,9 @@ export default function LoginPage() {
       );
       localStorage.setItem("role", data.role);
 
+      // Notify Navbar that authentication has changed
+      window.dispatchEvent(new Event("authChange"));
+
       // Role based smart redirection
       const role = String(data.role || "").toLowerCase();
 
@@ -73,11 +76,24 @@ export default function LoginPage() {
       const data = await res.json();
 
       console.log("Anonymous response:", data);
+      const userId = data.user?.id ?? data.userId ?? data.anonymousId;
+      const role = data.user?.role ?? data.role;
 
       // store anonymous session
       localStorage.setItem("token", data.token);
-      localStorage.setItem("role", data.role);
-      localStorage.setItem("userId", data.anonymousId);
+      localStorage.setItem("role", role);
+      localStorage.setItem("userId", userId);
+      localStorage.setItem(
+        "user",
+        JSON.stringify({
+          id: userId,
+          role,
+        }),
+      );
+
+      window.dispatchEvent(new Event("authChange"));
+
+      router.replace("/dashboard");
 
       // redirect
       router.replace("/dashboard");

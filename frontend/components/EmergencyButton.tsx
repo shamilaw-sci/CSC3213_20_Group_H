@@ -1,13 +1,46 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { API_BASE_URL } from "../services/api";
 
 export default function EmergencyButton() {
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [holding, setHolding] = useState(false);
+  const [holdProgress, setHoldProgress] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
   const [acknowledged, setAcknowledged] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+
+  const holdTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handlePressStart = () => {
+    if (loading) return;
+    setHolding(true);
+    setHoldProgress(0);
+
+    const duration = 3000;
+    const intervalTime = 30;
+    let elapsed = 0;
+
+    progressIntervalRef.current = setInterval(() => {
+      elapsed += intervalTime;
+      const progress = Math.min((elapsed / duration) * 100, 100);
+      setHoldProgress(progress);
+    }, intervalTime);
+
+    holdTimerRef.current = setTimeout(() => {
+      handleEmergencyTrigger();
+      handlePressEnd();
+    }, duration);
+  };
+
+  const handlePressEnd = () => {
+    setHolding(false);
+    setHoldProgress(0);
+    if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+    if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+  };
 
   const handleEmergencyTrigger = async () => {
     setLoading(true);
@@ -15,20 +48,19 @@ export default function EmergencyButton() {
 
     try {
       const token = localStorage.getItem("token");
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+      };
 
-      if (!token) {
-        setErrorMessage("You must be logged in to trigger an emergency alert.");
-        return;
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
       }
 
       const response = await fetch(`${API_BASE_URL}/api/emergency`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: ["Bearer", token].join(" "),
-        },
+        headers,
         body: JSON.stringify({
-          description: "Panic button triggered from user dashboard",
+          description: "Crisis panic button triggered (Press-and-Hold)",
           timestamp: new Date().toISOString(),
         }),
       });
@@ -36,20 +68,18 @@ export default function EmergencyButton() {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(
-          errorData.error ||
-            errorData.message ||
-            "Failed to dispatch emergency call.",
+          errorData.message || "Failed to dispatch emergency call.",
         );
       }
 
-      setModalOpen(false);
+      setPanelOpen(false);
       setAcknowledged(true);
-      setTimeout(() => setAcknowledged(false), 6000);
-    } catch (err) {
-      console.error("Failed to dispatch emergency call", err);
+      setTimeout(() => setAcknowledged(false), 7000);
+    } catch (error) {
+      console.error("Failed to dispatch emergency call", error);
       setErrorMessage(
-        err instanceof Error
-          ? err.message
+        error instanceof Error
+          ? error.message
           : "An error occurred while alerting support.",
       );
     } finally {
@@ -62,54 +92,83 @@ export default function EmergencyButton() {
       <button
         onClick={() => {
           setErrorMessage("");
-          setModalOpen(true);
+          setPanelOpen(true);
         }}
-        className="fixed bottom-6 right-6 z-50 bg-red-600 hover:bg-red-700 text-white font-bold px-5 py-4 rounded-full shadow-2xl flex items-center gap-2 animate-[bounce_2.5s_infinite] transition-all cursor-pointer"
+        className="fixed bottom-6 right-6 z-50 flex cursor-pointer items-center gap-3 rounded-full bg-red-600 px-6 py-4 font-extrabold text-white shadow-2xl transition-all hover:bg-red-700"
+        aria-label="Emergency Help"
       >
-        🚨 EMERGENCY HELP
+        <span className="text-xl">🚨</span> EMERGENCY HELP
       </button>
 
-      {modalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl text-center">
-            <h2 className="text-2xl font-extrabold text-red-600 mb-2">
-              Immediate Crisis Support
+      {panelOpen && (
+        <div className="fixed inset-0 z-50 flex animate-fade-in items-center justify-center bg-black/70 p-4 backdrop-blur-md">
+          <div className="w-full max-w-lg rounded-3xl bg-white p-8 text-center shadow-2xl">
+            <div className="mb-2 text-4xl">⚠️</div>
+            <h2 className="mb-3 text-2xl font-black tracking-tight text-red-600">
+              For Immediate Crisis Support
             </h2>
-            <p className="text-gray-600 mb-4 text-sm">
-              Are you experiencing an immediate crisis? Clicking confirm will
-              bypass standard booking queues and instantly alert on-call
-              emergency counsellors.
+            <p className="mb-6 text-base font-bold text-gray-800">
+              “Are you in immediate danger or thinking about harming yourself?”
             </p>
 
             {errorMessage && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-xs rounded-lg font-medium">
+              <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-600">
                 {errorMessage}
               </div>
             )}
 
-            <div className="flex gap-3 justify-center">
+            <div className="mb-6 flex flex-col items-center">
+              <p className="mb-2 text-xs font-semibold text-gray-500">
+                Press and hold for 3 seconds to confirm emergency dispatch:
+              </p>
               <button
-                onClick={() => setModalOpen(false)}
+                onMouseDown={handlePressStart}
+                onMouseUp={handlePressEnd}
+                onMouseLeave={handlePressEnd}
+                onTouchStart={handlePressStart}
+                onTouchEnd={handlePressEnd}
                 disabled={loading}
-                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl text-gray-700 font-semibold text-sm transition-all"
+                className="relative w-full cursor-pointer select-none overflow-hidden rounded-2xl bg-red-600 py-4 font-extrabold text-white shadow-lg transition-all hover:bg-red-700 disabled:opacity-50"
               >
-                Cancel
+                {holding && (
+                  <div
+                    className="pointer-events-none absolute bottom-0 left-0 top-0 bg-red-900/50 transition-all duration-75"
+                    style={{ width: `${holdProgress}%` }}
+                  />
+                )}
+                <span className="relative z-10 text-base">
+                  {loading
+                    ? "Transmitting Emergency Alert..."
+                    : holding
+                      ? `Hold Steady... (${Math.ceil((3000 - holdProgress * 30) / 1000)}s)`
+                      : "🔒 HOLD TO DISPATCH EMERGENCY"}
+                </span>
               </button>
+            </div>
+
+            <div className="flex flex-col justify-center gap-3 sm:flex-row">
               <button
-                onClick={handleEmergencyTrigger}
+                onClick={() => setPanelOpen(false)}
                 disabled={loading}
-                className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-sm shadow-lg transition-all disabled:opacity-50"
+                className="cursor-pointer rounded-xl bg-gray-100 px-5 py-3 text-sm font-bold text-gray-700 transition-all hover:bg-gray-200"
               >
-                {loading ? "Transmitting..." : "Confirm Emergency"}
+                Cancel / I am safe
               </button>
+              <a
+                href="/support-options"
+                onClick={() => setPanelOpen(false)}
+                className="flex cursor-pointer items-center justify-center rounded-xl bg-blue-50 px-5 py-3 text-sm font-bold text-blue-700 transition-all hover:bg-blue-100"
+              >
+                I need support, but it’s not urgent
+              </a>
             </div>
           </div>
         </div>
       )}
 
       {acknowledged && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-emerald-600 text-white px-6 py-3 rounded-xl shadow-2xl font-semibold text-sm tracking-wide animate-fade-in">
-          ✓ Help request received. An emergency responder has been alerted.
+        <div className="fixed left-1/2 top-6 z-50 -translate-x-1/2 animate-bounce rounded-2xl bg-emerald-600 px-6 py-4 text-sm font-bold tracking-wide text-white shadow-2xl">
+          ✓ Help request received. An emergency responder has been alerted. Please stay calm.
         </div>
       )}
     </>
