@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { API_BASE_URL } from "../services/api";
 
 export default function EmergencyButton() {
   const [loading, setLoading] = useState(false);
@@ -18,7 +19,7 @@ export default function EmergencyButton() {
         return; // Stops it from hanging on transmitting
       }
 
-      const response = await fetch("http://localhost:5000/api/emergency", {
+      const response = await fetch(`${API_BASE_URL}/api/emergency`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
