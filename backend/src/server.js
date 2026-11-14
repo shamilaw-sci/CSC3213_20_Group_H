@@ -2,10 +2,12 @@ import http from "http";
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import jwt from "jsonwebtoken";
 import { Server } from "socket.io";
 import rateLimit from "express-rate-limit";
 
 import passport from "./config/passport.js";
+import { SECRET } from "./config.js";
 import pool, { testConnection } from "./config/db.js";
 
 import authRoutes from "./routes/authRoutes.js";
@@ -206,6 +208,28 @@ io.on("connection", (socket) => {
 
   socket.on("joinRoom", (roomId) => {
     socket.join(roomId);
+  });
+
+  socket.on("joinAdminRoom", (token, acknowledge) => {
+    const respond = (payload) => {
+      if (typeof acknowledge === "function") acknowledge(payload);
+    };
+
+    try {
+      const user = jwt.verify(token, SECRET);
+      const role = String(user.role || "").toLowerCase();
+
+      if (role !== "admin" && role !== "supervisor") {
+        respond({ success: false, error: "Admin access required." });
+        return;
+      }
+
+      socket.join("admin-room");
+      respond({ success: true });
+    } catch (error) {
+      console.error("Admin socket authorization failed:", error.message);
+      respond({ success: false, error: "Invalid or expired token." });
+    }
   });
 
   socket.on("callUser", (data) => {

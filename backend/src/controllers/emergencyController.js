@@ -4,10 +4,13 @@ import sgMail from '@sendgrid/mail';
 import twilio from 'twilio';
 
 export const triggerEmergency = async (req, res) => {
-    // req.user is supplied by the JWT auth middleware; guard against it being missing
+    // 1. Verify authentication
     if (!req.user || !req.user.id) {
-        return res.status(401).json({ error: 'Authentication required to trigger an emergency alert.' });
+        return res.status(401).json({
+            error: 'Authentication required to trigger an emergency alert.'
+        });
     }
+
     const studentId = req.user.id;
     const { description, aiConfidence } = req.body ?? {};
 
@@ -17,6 +20,7 @@ export const triggerEmergency = async (req, res) => {
     let normalizedDescription;
     let normalizedConfidence;
 
+    // 2. Assess emergency severity
     try {
         ({
             severityScore,
@@ -25,19 +29,25 @@ export const triggerEmergency = async (req, res) => {
             aiConfidence: normalizedConfidence,
             description: normalizedDescription,
         } = assessSeverity({ description, aiConfidence }));
+
     } catch (error) {
         if (error instanceof ValidationError) {
             return res.status(400).json({ error: error.message });
         }
+
         console.error('Unexpected error assessing emergency severity:', error);
-        return res.status(500).json({ error: 'Critical system error processing emergency request.' });
+
+        return res.status(500).json({
+            error: 'Critical system error processing emergency request.'
+        });
     }
 
+    // 3. Save emergency and immediately acknowledge the student
     try {
-        // 1. Log Emergency to MySQL Database
         const [result] = await db.query(
-            `INSERT INTO emergencies (student_id, severity_score, description, ai_confidence, fallback_triggered, status)
-             VALUES (?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO emergencies
+            (student_id, severity_score, description, ai_confidence, fallback_triggered, status)
+            VALUES (?, ?, ?, ?, ?, ?)`,
             [
                 studentId,
                 severityScore,
@@ -50,39 +60,56 @@ export const triggerEmergency = async (req, res) => {
 
         const emergencyId = result.insertId;
 
-        // 2. Broadcast Real-Time Alert to Counsellors via Socket.IO
-        if (global.io) {
-            global.io.to('counsellors-room').emit('emergencyAlert', {
-                emergencyId,
-                studentId,
-                severityScore,
-                fallbackTriggered,
-                description: normalizedDescription,
-                timestamp: new Date().toISOString()
-            });
-        }
-
-        // 3. Trigger Redundant Notifications (In-App -> SendGrid -> Twilio fallback)
-        await dispatchRedundantNotifications({
-            emergencyId,
-            studentId,
-            severityScore,
-            fallbackTriggered,
-            matchedKeywords,
-            description: normalizedDescription || 'Immediate crisis assistance requested',
-        });
-
-        // 4. Immediate Acknowledgement Response back to the student (Satisfies NF-PERF-1.5 <= 3s)
-        return res.status(201).json({
+        // 4. Immediately acknowledge the emergency request
+        res.status(201).json({
             success: true,
             message: 'Help request received. Emergency protocols activated. An active responder has been notified.',
             emergencyId,
             severity: severityScore
         });
 
+        // 5. Run notifications asynchronously in the background
+        setImmediate(async () => {
+            try {
+                // Broadcast real-time alert to counsellors
+                if (global.io) {
+                    global.io.to('counsellors-room').emit('emergencyAlert', {
+                        emergencyId,
+                        studentId,
+                        severityScore,
+                        fallbackTriggered,
+                        description: normalizedDescription,
+                        timestamp: new Date().toISOString()
+                    });
+                }
+
+                // Trigger redundant notifications
+                await dispatchRedundantNotifications({
+                    emergencyId,
+                    studentId,
+                    severityScore,
+                    fallbackTriggered,
+                    matchedKeywords,
+                    description: normalizedDescription ||
+                        'Immediate crisis assistance requested'
+                });
+
+            } catch (bgError) {
+                console.error(
+                    'Background emergency notification error:',
+                    bgError
+                );
+            }
+        });
+
     } catch (error) {
         console.error('Emergency trigger failure:', error);
-        return res.status(500).json({ error: 'Critical system error processing emergency request.' });
+
+        if (!res.headersSent) {
+            return res.status(500).json({
+                error: 'Critical system error processing emergency request.'
+            });
+        }
     }
 };
 
