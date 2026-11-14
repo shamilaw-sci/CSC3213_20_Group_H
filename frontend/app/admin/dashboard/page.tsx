@@ -10,6 +10,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { Nunito } from "next/font/google";
+import { API_BASE_URL } from "@/services/api";
 
 const nunito = Nunito({
   subsets: ["latin"],
@@ -23,7 +24,7 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    fetch("http://localhost:5000/api/admin/analytics", {
+    fetch(`${API_BASE_URL}/api/admin/analytics`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(async (res) => {
@@ -45,7 +46,7 @@ export default function AdminDashboardPage() {
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(
-        `http://localhost:5000/api/admin/reports/${format}`,
+        `${API_BASE_URL}/api/admin/reports/${format}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         },

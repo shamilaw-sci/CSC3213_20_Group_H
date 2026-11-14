@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { API_BASE_URL } from "@/services/api";
 
 interface Counsellor {
   id: number;
@@ -17,7 +18,8 @@ interface Slot {
 
 interface Appointment {
   id: number;
-  name: string;
+  name?: string;
+  counsellor_name?: string;
   specialization: string;
   available_date: string;
   start_time: string;
@@ -50,10 +52,19 @@ export default function AppointmentBooking() {
   const fetchCounsellors = async () => {
     try {
       const res = await fetch(
-        "http://localhost:5050/api/counsellors"
+        `${API_BASE_URL}/api/counsellors`
       );
 
       const data = await res.json();
+
+      if (!res.ok || !Array.isArray(data)) {
+        console.error(
+          "Failed to fetch counsellors:",
+          data
+        );
+        setCounsellors([]);
+        return;
+      }
 
       setCounsellors(data);
     } catch (error) {
@@ -61,6 +72,7 @@ export default function AppointmentBooking() {
         "Failed to fetch counsellors:",
         error
       );
+      setCounsellors([]);
     }
   };
 
@@ -73,10 +85,19 @@ export default function AppointmentBooking() {
       if (!user.id) return;
 
       const res = await fetch(
-        `http://localhost:5050/api/sessions/${user.id}`
+        `${API_BASE_URL}/api/sessions/${user.id}`
       );
 
       const data = await res.json();
+
+      if (!res.ok || !Array.isArray(data)) {
+        console.error(
+          "Failed to fetch appointments:",
+          data
+        );
+        setAppointments([]);
+        return;
+      }
 
       setAppointments(data);
     } catch (error) {
@@ -84,6 +105,7 @@ export default function AppointmentBooking() {
         "Failed to fetch appointments:",
         error
       );
+      setAppointments([]);
     }
   };
 
@@ -92,12 +114,27 @@ export default function AppointmentBooking() {
   ) => {
     try {
       setSelectedCounsellor(counsellorId);
+      setSelectedSlot("");
+
+      if (!counsellorId) {
+        setSlots([]);
+        return;
+      }
 
       const res = await fetch(
-        `http://localhost:5050/api/counsellors/${counsellorId}/availability`
+        `${API_BASE_URL}/api/counsellors/${counsellorId}/availability`
       );
 
       const data = await res.json();
+
+      if (!res.ok || !Array.isArray(data)) {
+        console.error(
+          "Failed to fetch slots:",
+          data
+        );
+        setSlots([]);
+        return;
+      }
 
       setSlots(data);
     } catch (error) {
@@ -105,6 +142,7 @@ export default function AppointmentBooking() {
         "Failed to fetch slots:",
         error
       );
+      setSlots([]);
     }
   };
 
@@ -125,7 +163,7 @@ export default function AppointmentBooking() {
       }
 
       const response = await fetch(
-        "http://localhost:5050/api/counsellors/book",
+        `${API_BASE_URL}/api/counsellors/book`,
         {
           method: "POST",
           headers: {
@@ -283,7 +321,8 @@ export default function AppointmentBooking() {
                       key={appointment.id}
                     >
                       <td className="border p-3">
-                        {appointment.name}
+                        {appointment.counsellor_name ||
+                          appointment.name}
                       </td>
 
                       <td className="border p-3">
