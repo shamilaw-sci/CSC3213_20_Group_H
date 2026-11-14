@@ -64,9 +64,9 @@ function ChatPageContent() {
       <div className="mb-4">
         <h1 className="text-2xl font-bold">CareBridge Companion</h1>
         <p className="text-sm text-gray-500">
-          A supportive space to talk things through. This isn't a
-          replacement for a real counsellor — if you're in crisis, use the
-          Emergency Help button.
+          A supportive space to talk things through. This isn't a replacement
+          for a real counsellor — if you're in crisis, use the Emergency Help
+          button.
         </p>
       </div>
 
@@ -80,7 +80,7 @@ function ChatPageContent() {
         ) : (
           messages.map((msg, idx) => (
             <div
-              key={msg.id ?? idx}
+              key={`${msg.id ?? "message"}-${idx}`}
               className={`flex ${
                 msg.sender === "patient" ? "justify-end" : "justify-start"
               }`}
