@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { API_BASE_URL } from "@/services/api";
 
 interface Counsellor {
   id: number;
@@ -80,6 +81,12 @@ export default function AppointmentBooking() {
   const loadSlots = async (counsellorId: string) => {
     try {
       setSelectedCounsellor(counsellorId);
+      setSelectedSlot("");
+
+      if (!counsellorId) {
+        setSlots([]);
+        return;
+      }
 
       const res = await fetch(
         `http://localhost:5050/api/counsellors/${counsellorId}/availability`,
@@ -107,7 +114,7 @@ export default function AppointmentBooking() {
       }
 
       const response = await fetch(
-        "http://localhost:5050/api/counsellors/book",
+        `${API_BASE_URL}/api/counsellors/book`,
         {
           method: "POST",
           headers: {

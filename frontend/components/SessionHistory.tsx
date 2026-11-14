@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { API_BASE_URL } from "@/services/api";
 
 export default function SessionHistory() {
   const [sessions, setSessions] =
@@ -14,13 +15,18 @@ export default function SessionHistory() {
     if (!user.id) return;
 
     fetch(
-      `http://localhost:5050/api/sessions/${user.id}`
+      `${API_BASE_URL}/api/sessions/${user.id}`
     )
       .then((res) => res.json())
       .then((data) =>
-        setSessions(data)
+        setSessions(
+          Array.isArray(data) ? data : []
+        )
       )
-      .catch(console.error);
+      .catch((err) => {
+        console.error(err);
+        setSessions([]);
+      });
   }, []);
 
   return (
@@ -36,7 +42,8 @@ export default function SessionHistory() {
             className="border border-gray-200 rounded-2xl p-5 bg-gray-50"
           >
             <h3 className="font-bold text-lg">
-              {session.name}
+              {session.counsellor_name ||
+                session.name}
             </h3>
 
             <p className="text-gray-600">
