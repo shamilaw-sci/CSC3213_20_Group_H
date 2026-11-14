@@ -1,7 +1,6 @@
 import AuthGuard from "@/components/AuthGuard";
 import VoiceCall from "@/components/VoiceCall";
 
-import { Nunito } from "next/font/google";
 import {
   PhoneCall,
   Mic,
@@ -9,22 +8,18 @@ import {
   Headphones,
 } from "lucide-react";
 
-const nunito = Nunito({
-  subsets: ["latin"],
-  weight: ["400", "600", "700", "800"],
-});
-
 export default function VoiceCallPage() {
   return (
     <AuthGuard>
-      <section
-        className={`${nunito.className} min-h-screen bg-gray-50 py-16 px-6`}
-      >
+      <section className="min-h-screen bg-gray-50 py-16 px-6">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="text-center mb-12">
             <div className="inline-flex items-center justify-center p-4 rounded-2xl bg-indigo-100 mb-5">
-              <PhoneCall size={40} className="text-indigo-600" />
+              <PhoneCall
+                size={40}
+                className="text-indigo-600"
+              />
             </div>
 
             <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900">
@@ -33,8 +28,8 @@ export default function VoiceCallPage() {
 
             <p className="mt-4 text-gray-600 max-w-2xl mx-auto">
               Connect directly with certified mental health
-              professionals through secure real-time voice
-              communication.
+              professionals through secure real-time
+              WebRTC voice communication.
             </p>
           </div>
 
@@ -47,12 +42,13 @@ export default function VoiceCallPage() {
               />
 
               <h3 className="font-bold text-lg text-gray-900">
-                Real-Time Conversations
+                Real-Time Audio
               </h3>
 
               <p className="text-gray-600 text-sm mt-2">
-                Speak openly with mental health professionals
-                using crystal-clear audio communication.
+                WebRTC enables low-latency voice
+                communication between counsellors
+                and students.
               </p>
             </div>
 
@@ -63,12 +59,13 @@ export default function VoiceCallPage() {
               />
 
               <h3 className="font-bold text-lg text-gray-900">
-                Professional Guidance
+                Professional Support
               </h3>
 
               <p className="text-gray-600 text-sm mt-2">
-                Receive personalized counselling support
-                from experienced professionals.
+                Speak privately with qualified
+                counsellors during scheduled
+                appointments.
               </p>
             </div>
 
@@ -79,17 +76,18 @@ export default function VoiceCallPage() {
               />
 
               <h3 className="font-bold text-lg text-gray-900">
-                Secure Connection
+                Secure Sessions
               </h3>
 
               <p className="text-gray-600 text-sm mt-2">
-                End-to-end protected communication ensuring
-                privacy and confidentiality.
+                Calls use encrypted peer-to-peer
+                WebRTC connections for privacy
+                and confidentiality.
               </p>
             </div>
           </div>
 
-          {/* Main Module */}
+          {/* Call Module */}
           <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
             <div className="mb-8">
               <span className="text-xs font-bold uppercase tracking-wider px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full">
@@ -97,16 +95,47 @@ export default function VoiceCallPage() {
               </span>
 
               <h2 className="text-2xl font-bold text-gray-900 mt-4">
-                Join Your Voice Session
+                Voice Counselling Session
               </h2>
 
               <p className="text-gray-600 mt-2">
-                Start and manage secure counselling calls
-                with professional support staff.
+                Start a secure WebRTC counselling
+                session with your assigned
+                counsellor.
               </p>
             </div>
 
             <VoiceCall />
+          </div>
+
+          {/* Session Notes */}
+          <div className="mt-8 bg-blue-50 border border-blue-100 rounded-2xl p-6">
+            <h3 className="font-bold text-blue-800 mb-2">
+              Before Starting
+            </h3>
+
+            <ul className="text-sm text-blue-700 space-y-2 list-disc pl-5">
+              <li>
+                Ensure microphone permission is
+                enabled in your browser.
+              </li>
+
+              <li>
+                Use Chrome, Edge, or Firefox for
+                best WebRTC compatibility.
+              </li>
+
+              <li>
+                Join the same session room as the
+                counsellor.
+              </li>
+
+              <li>
+                Verify your appointment is
+                scheduled before starting the
+                call.
+              </li>
+            </ul>
           </div>
         </div>
       </section>

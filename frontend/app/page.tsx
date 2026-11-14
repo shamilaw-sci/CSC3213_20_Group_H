@@ -23,8 +23,19 @@ export default function HomePage() {
       const data = await response.json();
 
       if (response.ok) {
+        const userId = data.user?.id ?? data.userId ?? data.anonymousId;
+        const role = data.user?.role ?? data.role;
+
         localStorage.setItem("token", data.token);
-        localStorage.setItem("user", JSON.stringify(data.user));
+        localStorage.setItem(
+          "user",
+          JSON.stringify({
+            id: userId,
+            role,
+          }),
+        );
+        localStorage.setItem("role", role);
+        localStorage.setItem("userId", userId);
 
         router.push("/dashboard");
       } else {

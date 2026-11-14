@@ -1,7 +1,6 @@
 import AuthGuard from "@/components/AuthGuard";
 import AppointmentBooking from "@/components/AppointmentBooking";
 
-import { Nunito } from "next/font/google";
 import {
   Calendar,
   Clock,
@@ -9,16 +8,11 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
-const nunito = Nunito({
-  subsets: ["latin"],
-  weight: ["400", "600", "700", "800"],
-});
-
 export default function BookingPage() {
   return (
     <AuthGuard>
       <section
-        className={`${nunito.className} min-h-screen bg-gray-50 py-16 px-6`}
+        className="min-h-screen bg-gray-50 py-16 px-6"
       >
         <div className="max-w-7xl mx-auto">
           {/* Header */}

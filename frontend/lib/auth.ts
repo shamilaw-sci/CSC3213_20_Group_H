@@ -12,11 +12,20 @@ export async function anonymousLogin() {
     }
 
     const data = await res.json();
+    const userId = data.user?.id ?? data.userId ?? data.anonymousId;
+    const role = data.user?.role ?? data.role;
 
     // save token
     localStorage.setItem("token", data.token);
-    localStorage.setItem("role", data.role);
-    localStorage.setItem("userId", data.anonymousId);
+    localStorage.setItem("role", role);
+    localStorage.setItem("userId", userId);
+    localStorage.setItem(
+        "user",
+        JSON.stringify({
+            id: userId,
+            role,
+        }),
+    );
 
     return data;
 }

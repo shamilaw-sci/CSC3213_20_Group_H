@@ -32,11 +32,31 @@ export const getAnalyticsDashboard = async (req, res) => {
         const [[{ totalStudents }]] = await db.query(`SELECT COUNT(*) as totalStudents FROM users WHERE role IN ('student', 'anonymous')`);
         const [[{ totalCounsellors }]] = await db.query(`SELECT COUNT(*) as totalCounsellors FROM users WHERE role='counsellor'`);
         const [[{ activeEmergencies }]] = await db.query(`SELECT COUNT(*) as activeEmergencies FROM emergencies WHERE status != 'Resolved'`);
+        const [students] = await db.query(
+            `SELECT id, name, email, role, is_suspended
+             FROM users
+             WHERE role IN ('student', 'anonymous')
+             ORDER BY created_at DESC`
+        );
+        const [counsellors] = await db.query(
+            `SELECT c.id, c.name, u.email, c.specialization AS department,
+                    COALESCE(cp.verification_status, 'pending') AS verification_status
+             FROM counsellors c
+             LEFT JOIN users u ON u.id = c.user_id
+             LEFT JOIN counsellor_profiles cp ON cp.user_id = c.user_id
+             ORDER BY c.created_at DESC`
+        );
 
         return res.status(200).json({
             success: true,
             stats: { totalStudents, totalCounsellors, activeEmergencies },
-            charts: { severityStats, sessionStats }
+            charts: { severityStats, sessionStats },
+            students: students.map((student) => ({
+                ...student,
+                type: student.role === 'anonymous' ? 'anonymous' : 'registered',
+                status: student.is_suspended ? 'Suspended' : 'Active'
+            })),
+            counsellors
         });
     } catch (error) {
         console.error('Analytics aggregation error:', error);
@@ -61,6 +81,8 @@ export const updateUserStatus = async (req, res) => {
             [role, is_suspended, userId]
         );
 
+        global.io?.to('admin-room').emit('usersUpdated');
+
         // NF-SEC-1.6 Audit trail logging
         console.log(`[AUDIT] Admin (ID: ${adminId}) updated user ID ${userId}: role=${role}, suspended=${is_suspended}`);
 
@@ -82,6 +104,8 @@ export const verifyCounsellor = async (req, res) => {
             `UPDATE counsellor_profiles SET verification_status = ? WHERE id = ?`,
             [verification_status, counsellorId]
         );
+
+        global.io?.to('admin-room').emit('usersUpdated');
 
         // NF-SEC-1.6 Audit trail logging
         console.log(`[AUDIT] Admin (ID: ${adminId}) changed counsellor profile ${counsellorId} status to ${verification_status}`);
