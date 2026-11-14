@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Nunito } from "next/font/google";
 import { 
   ShieldCheck, 
   Bot, 
@@ -9,11 +8,6 @@ import {
   AlertTriangle, 
   LayoutDashboard 
 } from "lucide-react";
-
-const nunito = Nunito({
-  subsets: ["latin"],
-  weight: ["400", "600", "700", "800"],
-});
 
 const features = [
   {
@@ -62,7 +56,7 @@ const features = [
 
 export default function FeaturesPage() {
   return (
-    <section id="info" className={`${nunito.className} min-h-screen py-20 px-6 bg-gray-50 flex flex-col items-center`}>
+    <section id="info" className="min-h-screen py-20 px-6 bg-gray-50 flex flex-col items-center">
       <div className="max-w-6xl w-full flex flex-col items-center">
         
         {/* Section Header */}

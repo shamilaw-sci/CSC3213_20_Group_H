@@ -102,12 +102,9 @@ export const getCounsellors = async (
   res
 ) => {
   try {
-    await ensureBookingTables();
-
-    const [rows] =
-      await db.query(
-        "SELECT * FROM counsellors"
-      );
+    const [rows] = await db.query(
+      "SELECT * FROM counsellors"
+    );
 
     res.json(rows);
   } catch (error) {
@@ -131,7 +128,9 @@ export const getAvailability = async (
       SELECT *
       FROM availability_slots
       WHERE counsellor_id = ?
+      AND status = 'Available'
       AND is_booked = FALSE
+      ORDER BY available_date, start_time
       `,
       [id]
     );
@@ -155,6 +154,48 @@ export const bookAppointment =
         slotId,
       } = req.body;
 
+      const [slots] = await db.query(
+        `
+        SELECT *
+        FROM availability_slots
+        WHERE id = ?
+        `,
+        [slotId]
+      );
+
+      if (slots.length === 0) {
+        return res.status(404).json({
+          message: "Slot not found",
+        });
+      }
+
+      const slot = slots[0];
+
+      if (slot.is_booked) {
+        return res.status(400).json({
+          message:
+            "This slot has already been booked",
+        });
+      }
+
+      if (
+        slot.status === "Unavailable"
+      ) {
+        return res.status(400).json({
+          message:
+            "This slot is currently unavailable",
+        });
+      }
+
+      if (
+        slot.status === "Booked"
+      ) {
+        return res.status(400).json({
+          message:
+            "This slot has already been booked",
+        });
+      }
+
       await db.query(
         `
         INSERT INTO appointments
@@ -175,7 +216,9 @@ export const bookAppointment =
       await db.query(
         `
         UPDATE availability_slots
-        SET is_booked = TRUE
+        SET
+          is_booked = TRUE,
+          status = 'Booked'
         WHERE id = ?
         `,
         [slotId]
@@ -186,6 +229,8 @@ export const bookAppointment =
           "Appointment booked successfully",
       });
     } catch (error) {
+      console.error(error);
+
       res.status(500).json({
         message: error.message,
       });

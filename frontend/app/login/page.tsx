@@ -31,7 +31,6 @@ export default function LoginPage() {
         );
       }
 
-      // --- CRITICAL STEP FOR MEMBER 401 ---
       // Store the JWT token & user info for the rest of the team
       localStorage.setItem("token", data.token);
 
@@ -44,12 +43,18 @@ export default function LoginPage() {
       );
       localStorage.setItem("role", data.role);
 
+      // Notify Navbar that authentication has changed
+      window.dispatchEvent(new Event("authChange"));
+
+      // Role based smart redirection
       const role = String(data.role || "").toLowerCase();
 
-      if (role === "admin" || role === "supervisor") {
-        window.location.href = "/admin/dashboard";
+      if (role === "counsellor") {
+        router.replace("/counsellor/dashboard");
+      } else if (role === "admin" || role === "supervisor") {
+        router.replace("/admin/dashboard");
       } else {
-        window.location.href = "/dashboard";
+        router.replace("/dashboard"); // Student or anonymous view
       }
     } catch (err: any) {
       setError(err.message);
@@ -71,11 +76,24 @@ export default function LoginPage() {
       const data = await res.json();
 
       console.log("Anonymous response:", data);
+      const userId = data.user?.id ?? data.userId ?? data.anonymousId;
+      const role = data.user?.role ?? data.role;
 
       // store anonymous session
       localStorage.setItem("token", data.token);
-      localStorage.setItem("role", data.role);
-      localStorage.setItem("userId", data.anonymousId);
+      localStorage.setItem("role", role);
+      localStorage.setItem("userId", userId);
+      localStorage.setItem(
+        "user",
+        JSON.stringify({
+          id: userId,
+          role,
+        }),
+      );
+
+      window.dispatchEvent(new Event("authChange"));
+
+      router.replace("/dashboard");
 
       // redirect
       router.replace("/dashboard");

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import api from "../lib/api";
+import { API_BASE_URL } from "../../services/api";
 
 export default function EmergencyPage() {
   const [acknowledgement, setAcknowledgement] = useState("");
@@ -9,16 +9,47 @@ export default function EmergencyPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleHelpRequest = async () => {
-    setAcknowledgement("Help request received");
+    setAcknowledgement("");
     setError("");
     setIsSubmitting(true);
 
     try {
-      await api.post("/emergency", {
-        message: "User requested emergency help",
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        throw new Error("You must be logged in to request emergency help.");
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/emergency`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          description: "User requested emergency help",
+          timestamp: new Date().toISOString(),
+        }),
       });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || data.message || "Unable to send the emergency request.",
+        );
+      }
+
+      setAcknowledgement(
+        data.message ||
+          "Help request received. An emergency responder has been alerted.",
+      );
     } catch (err) {
-      setError("Unable to send the request to the server. Please try again.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to send the request to the server. Please try again.",
+      );
     } finally {
       setIsSubmitting(false);
     }

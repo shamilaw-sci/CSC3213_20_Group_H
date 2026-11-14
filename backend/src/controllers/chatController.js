@@ -60,13 +60,7 @@ export const getHistory = async (req, res) => {
 
 export const sendMessage = async (req, res) => {
   const userId = req.user.id;
-  const { message } = req.body || {};
-
-  if (!message || typeof message !== "string" || !message.trim()) {
-    return res.status(400).json({ error: "Message is required." });
-  }
-
-  const trimmedMessage = message.trim();
+  const trimmedMessage = req.body.message;
 
   try {
     const history = await fetchRecentMessages(userId);

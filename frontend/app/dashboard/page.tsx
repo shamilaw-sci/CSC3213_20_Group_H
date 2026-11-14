@@ -4,12 +4,21 @@ import { useEffect, useState } from "react";
 import { logout } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import AuthGuard from "@/components/AuthGuard";
+import socket from "@/services/socket";
+
+type EmergencyAlert = {
+  description?: string;
+  severity?: string;
+  [key: string]: unknown;
+};
 
 export default function Dashboard() {
   const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [emergencyAlert, setEmergencyAlert] =
+    useState<EmergencyAlert | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -28,6 +37,22 @@ export default function Dashboard() {
     setIsCheckingAuth(false);
   }, [router]);
 
+  useEffect(() => {
+    if (role !== "counsellor") return;
+
+    const handleEmergencyAlert = (alertData: EmergencyAlert) => {
+      console.warn("Incoming Emergency Alert:", alertData);
+      setEmergencyAlert(alertData);
+    };
+
+    socket.emit("joinRoom", "counsellors-room");
+    socket.on("emergencyAlert", handleEmergencyAlert);
+
+    return () => {
+      socket.off("emergencyAlert", handleEmergencyAlert);
+    };
+  }, [role]);
+
   const handleLogout = () => {
     logout();
     router.replace("/login");
@@ -43,6 +68,26 @@ export default function Dashboard() {
 
   return (
   <div style={{ padding: "50px" }}>
+    {role === "counsellor" && emergencyAlert && (
+      <div
+        role="alert"
+        style={{
+          marginBottom: "24px",
+          padding: "16px",
+          border: "2px solid #dc2626",
+          borderRadius: "8px",
+          backgroundColor: "#fef2f2",
+          color: "#991b1b",
+        }}
+      >
+        <strong>High-priority emergency alert</strong>
+        <p>
+          {emergencyAlert.description ||
+            "A new emergency requires attention."}
+        </p>
+      </div>
+    )}
+
     <h1>Dashboard</h1>
 
     {role === "anonymous" ? (

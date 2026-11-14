@@ -1,46 +1,78 @@
 import db from '../config/db.js';
+import { assessSeverity, ValidationError } from '../utils/riskAssessment.js';
+import sgMail from '@sendgrid/mail';
+import twilio from 'twilio';
 
 export const triggerEmergency = async (req, res) => {
-    // req.user is supplied by your existing JWT auth middleware
-    const studentId = req.user.id; 
-    const { description, aiConfidence } = req.body;
+    // req.user is supplied by the JWT auth middleware; guard against it being missing
+    if (!req.user || !req.user.id) {
+        return res.status(401).json({ error: 'Authentication required to trigger an emergency alert.' });
+    }
+    const studentId = req.user.id;
+    const { description, aiConfidence } = req.body ?? {};
+
+    let severityScore;
+    let fallbackTriggered;
+    let matchedKeywords;
+    let normalizedDescription;
+    let normalizedConfidence;
 
     try {
-        let severityScore = 'High';
-        let fallbackTriggered = false;
-
-        // 1. Emergency Escalation Logic & AI Confidence Fallback Rule
-        // If AI confidence score falls below 65%, trigger an instant human override
-        if (aiConfidence !== undefined && aiConfidence < 0.65) {
-            severityScore = 'Critical';
-            fallbackTriggered = true; 
+        ({
+            severityScore,
+            fallbackTriggered,
+            matchedKeywords,
+            aiConfidence: normalizedConfidence,
+            description: normalizedDescription,
+        } = assessSeverity({ description, aiConfidence }));
+    } catch (error) {
+        if (error instanceof ValidationError) {
+            return res.status(400).json({ error: error.message });
         }
+        console.error('Unexpected error assessing emergency severity:', error);
+        return res.status(500).json({ error: 'Critical system error processing emergency request.' });
+    }
 
-        // 2. Log Emergency to MySQL Database
+    try {
+        // 1. Log Emergency to MySQL Database
         const [result] = await db.query(
-            `INSERT INTO emergencies (student_id, severity_score, description, ai_confidence, fallback_triggered, status) 
+            `INSERT INTO emergencies (student_id, severity_score, description, ai_confidence, fallback_triggered, status)
              VALUES (?, ?, ?, ?, ?, ?)`,
             [
-                studentId, 
-                severityScore, 
-                description || 'Immediate crisis assistance requested', 
-                aiConfidence || null, 
-                fallbackTriggered, 
+                studentId,
+                severityScore,
+                normalizedDescription || 'Immediate crisis assistance requested',
+                normalizedConfidence,
+                fallbackTriggered,
                 'Pending_Acknowledgment'
             ]
         );
 
         const emergencyId = result.insertId;
 
+        // 2. Broadcast Real-Time Alert to Counsellors via Socket.IO
+        if (global.io) {
+            global.io.to('counsellors-room').emit('emergencyAlert', {
+                emergencyId,
+                studentId,
+                severityScore,
+                fallbackTriggered,
+                description: normalizedDescription,
+                timestamp: new Date().toISOString()
+            });
+        }
+
         // 3. Trigger Redundant Notifications (In-App -> SendGrid -> Twilio fallback)
         await dispatchRedundantNotifications({
             emergencyId,
             studentId,
             severityScore,
-            fallbackTriggered
+            fallbackTriggered,
+            matchedKeywords,
+            description: normalizedDescription || 'Immediate crisis assistance requested',
         });
 
-        // 4. Immediate Acknowledgement Response back to the student
+        // 4. Immediate Acknowledgement Response back to the student (Satisfies NF-PERF-1.5 <= 3s)
         return res.status(201).json({
             success: true,
             message: 'Help request received. Emergency protocols activated. An active responder has been notified.',
@@ -54,34 +86,88 @@ export const triggerEmergency = async (req, res) => {
     }
 };
 
-// Redundant Notification Engine with Fallback Channels
 async function dispatchRedundantNotifications(details) {
-    try {
-        let emailSent = false;
-        let smsSent = false;
+    const emailRecipients = getConfiguredRecipients('ON_CALL_COUNSELLOR_EMAILS');
+    const phoneRecipients = getConfiguredRecipients('ON_CALL_COUNSELLOR_PHONES');
+    const sendSmsRedundantly = process.env.TWILIO_REDUNDANT_ESCALATION === 'true';
+    let emailSent = false;
+    let smsSent = false;
 
-        // Channel 1: Email via SendGrid (Fallback Layer 1)
-        if (process.env.SENDGRID_API_KEY) {
-            try {
-                // Implement SendGrid Mail API call here
-                emailSent = true;
-            } catch (emailErr) {
-                console.error('SendGrid channel failed, triggering fallback...', emailErr);
-            }
+    if (process.env.SENDGRID_API_KEY && process.env.SENDGRID_FROM_EMAIL && emailRecipients.length) {
+        try {
+            sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+            await sgMail.send({
+                to: emailRecipients,
+                from: process.env.SENDGRID_FROM_EMAIL,
+                subject: `URGENT CareBridge emergency alert #${details.emergencyId}`,
+                text: [
+                    'An emergency alert requires immediate counsellor attention.',
+                    `Emergency ID: ${details.emergencyId}`,
+                    `Severity: ${details.severityScore}`,
+                    `Student ID: ${details.studentId}`,
+                    `Description: ${details.description}`,
+                    `Time: ${new Date().toISOString()}`,
+                ].join('\n'),
+            });
+            emailSent = true;
+        } catch (error) {
+            console.error('SendGrid notification failed:', error.message);
         }
-
-        // Channel 2: SMS via Twilio (Fallback Layer 2 / High-Urgency Redundancy)
-        if (!emailSent && process.env.TWILIO_ACCOUNT_SID) {
-            try {
-                // Implement Twilio SMS API call here
-                smsSent = true;
-            } catch (smsErr) {
-                console.error('Twilio channel failed as well:', smsErr);
-            }
-        }
-
-        console.log(`[EMERGENCY DISPATCHED] ID: ${details.emergencyId} | Severity: ${details.severityScore} | Email: ${emailSent} | SMS: ${smsSent}`);
-    } catch (err) {
-        console.error('Notification dispatch failure across channels:', err);
+    } else {
+        console.error(
+            'SendGrid notification skipped: configure SENDGRID_API_KEY, SENDGRID_FROM_EMAIL, and ON_CALL_COUNSELLOR_EMAILS.'
+        );
     }
+
+    if ((!emailSent || sendSmsRedundantly) && phoneRecipients.length) {
+        if (
+            process.env.TWILIO_ACCOUNT_SID &&
+            process.env.TWILIO_AUTH_TOKEN &&
+            process.env.TWILIO_FROM_NUMBER
+        ) {
+            try {
+                const client = twilio(
+                    process.env.TWILIO_ACCOUNT_SID,
+                    process.env.TWILIO_AUTH_TOKEN
+                );
+                const message = [
+                    'URGENT CareBridge emergency alert',
+                    `ID: ${details.emergencyId}`,
+                    `Severity: ${details.severityScore}`,
+                    `Description: ${details.description}`,
+                ].join(' | ');
+
+                await Promise.all(
+                    phoneRecipients.map((to) =>
+                        client.messages.create({
+                            body: message,
+                            from: process.env.TWILIO_FROM_NUMBER,
+                            to,
+                        })
+                    )
+                );
+                smsSent = true;
+            } catch (error) {
+                console.error('Twilio notification failed:', error.message);
+            }
+        } else {
+            console.error(
+                'Twilio notification skipped: configure TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_FROM_NUMBER.'
+            );
+        }
+    }
+
+    if (!emailSent && !smsSent) {
+        console.error('Emergency notification delivery failed on all configured channels.');
+    }
+
+    const riskFlags = details.matchedKeywords?.length ? details.matchedKeywords.join(', ') : 'none';
+    console.log(`[EMERGENCY DISPATCHED] ID: ${details.emergencyId} | Severity: ${details.severityScore} | Fallback: ${details.fallbackTriggered} | RiskFlags: ${riskFlags} | Email: ${emailSent} | SMS: ${smsSent}`);
+}
+
+function getConfiguredRecipients(environmentVariable) {
+    return (process.env[environmentVariable] || '')
+        .split(',')
+        .map((recipient) => recipient.trim())
+        .filter(Boolean);
 }

@@ -12,16 +12,11 @@ import chatRoutes from "./routes/chatRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import counsellorRoutes from "./routes/counsellorRoutes.js";
 import sessionRoutes from "./routes/sessionRoutes.js";
+import availabilityRoutes from "./routes/availabilityRoutes.js";
 
 dotenv.config();
 
 const app = express();
-
-/*
-|--------------------------------------------------------------------------
-| Middleware
-|--------------------------------------------------------------------------
-*/
 
 app.use(
   cors({
@@ -48,48 +43,23 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
-/*
-|--------------------------------------------------------------------------
-| Root Route
-|--------------------------------------------------------------------------
-*/
-
 app.get("/", (req, res) => {
   res.send("Mind-Ease API is running...");
 });
 
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-*/
-
-// Authentication
 app.use("/api/auth", authRoutes);
 
-// Emergency Support
 app.use("/api/emergency", emergencyRoutes);
 
-// Clarity Shard rewards & counselling unlock routes
-app.use("/api/shards", shardRoutes);
-
-// Patient-friendly counselling chatbot
 app.use("/api/chat", chatRoutes);
 
-// Admin
 app.use("/api/admin", adminRoutes);
 
-// Counsellors & Booking
 app.use("/api/counsellors", counsellorRoutes);
 
-// Session History
 app.use("/api/sessions", sessionRoutes);
 
-/*
-|--------------------------------------------------------------------------
-| Logs API
-|--------------------------------------------------------------------------
-*/
+app.use("/api/availability", availabilityRoutes);
 
 app.post("/api/logs", (req, res) => {
   const {
@@ -137,12 +107,6 @@ app.post("/api/logs", (req, res) => {
   });
 });
 
-/*
-|--------------------------------------------------------------------------
-| Health Check
-|--------------------------------------------------------------------------
-*/
-
 app.get("/api/health", (req, res) => {
   res.status(200).json({
     success: true,
@@ -151,24 +115,12 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-/*
-|--------------------------------------------------------------------------
-| 404 Handler
-|--------------------------------------------------------------------------
-*/
-
 app.use((req, res) => {
   res.status(404).json({
     success: false,
     message: "Route not found",
   });
 });
-
-/*
-|--------------------------------------------------------------------------
-| Global Error Handler
-|--------------------------------------------------------------------------
-*/
 
 app.use((err, req, res, next) => {
   console.error(err);
