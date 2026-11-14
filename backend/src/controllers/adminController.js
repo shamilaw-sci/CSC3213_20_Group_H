@@ -96,19 +96,47 @@ export const updateUserStatus = async (req, res) => {
 // Counsellor Verification Workflow with Audit Logging
 export const verifyCounsellor = async (req, res) => {
     const { counsellorId } = req.params;
-    const { verification_status } = req.body; 
+    const verification_status = req.body?.verification_status || 'approved';
     const adminId = req.user?.id;
 
+    if (!['pending', 'approved', 'rejected'].includes(verification_status)) {
+        return res.status(400).json({ error: 'Invalid verification_status value.' });
+    }
+
     try {
-        await db.query(
-            `UPDATE counsellor_profiles SET verification_status = ? WHERE id = ?`,
-            [verification_status, counsellorId]
+        const [counsellorRows] = await db.query(
+            `SELECT id, user_id FROM counsellors WHERE id = ? LIMIT 1`,
+            [counsellorId]
         );
+        const targetUserId = counsellorRows[0]?.user_id;
+
+        if (targetUserId) {
+            const [existing] = await db.query(
+                `SELECT id FROM counsellor_profiles WHERE user_id = ? LIMIT 1`,
+                [targetUserId]
+            );
+            if (existing.length > 0) {
+                await db.query(
+                    `UPDATE counsellor_profiles SET verification_status = ? WHERE user_id = ?`,
+                    [verification_status, targetUserId]
+                );
+            } else {
+                await db.query(
+                    `INSERT INTO counsellor_profiles (user_id, verification_status, is_available) VALUES (?, ?, TRUE)`,
+                    [targetUserId, verification_status]
+                );
+            }
+        } else {
+            await db.query(
+                `UPDATE counsellor_profiles SET verification_status = ? WHERE id = ?`,
+                [verification_status, counsellorId]
+            );
+        }
 
         global.io?.to('admin-room').emit('usersUpdated');
 
         // NF-SEC-1.6 Audit trail logging
-        console.log(`[AUDIT] Admin (ID: ${adminId}) changed counsellor profile ${counsellorId} status to ${verification_status}`);
+        console.log(`[AUDIT] Admin (ID: ${adminId}) changed counsellor ${counsellorId} status to ${verification_status}`);
 
         return res.status(200).json({ success: true, message: `Counsellor status updated to ${verification_status}` });
     } catch (error) {

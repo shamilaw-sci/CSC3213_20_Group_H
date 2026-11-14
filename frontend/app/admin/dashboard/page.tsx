@@ -11,9 +11,11 @@ import {
 } from "recharts";
 import { API_BASE_URL } from "@/services/api";
 import socket, { joinAdminRoom } from "@/services/socket";
-import { Users, UserCheck, AlertTriangle, ShieldCheck, UserX, CheckCircle, FileText } from "lucide-react";
+import AuthGuard from "@/components/AuthGuard";
+import RiskOverviewPanel from "@/components/RiskOverviewPanel";
+import { Users, UserCheck, AlertTriangle, CheckCircle } from "lucide-react";
 
-export default function AdminDashboardPage() {
+function AdminDashboardContent() {
   const [analytics, setAnalytics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -56,7 +58,11 @@ export default function AdminDashboardPage() {
     try {
       const res = await fetch(`${API_BASE_URL}/api/admin/counsellors/${counsellorId}/verify`, {
         method: "PUT",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ verification_status: "approved" }),
       });
       if (!res.ok) throw new Error("Failed to update counsellor status");
       alert("Counsellor verified successfully!");
@@ -100,17 +106,9 @@ export default function AdminDashboardPage() {
       </div>
     );
 
-  // Mock / dynamic data fallback for table mapping if backend arrays are empty
-  const studentsList = analytics?.students || [
-    { id: 1, name: "Thishan Bandara", email: "thishan@pdn.ac.lk", type: "registered", status: "Active" },
-    { id: 2, name: "Anonymous-User-#402", email: "hidden@anonymous.local", type: "anonymous", status: "Active" },
-    { id: 3, name: "Uvindu Shamilka", email: "uvindu@pdn.ac.lk", type: "registered", status: "Suspended" },
-  ];
+  const studentsList = analytics?.students || [];
 
-  const counsellorsList = analytics?.counsellors || [
-    { id: 101, name: "Dr. Samantha Perera", email: "samantha.p@peradeniya.ac.lk", department: "Mental Health & Wellness", verification_status: "pending" },
-    { id: 102, name: "Dr. W.M.H.U Wijethunga", email: "wijethunga@pdn.ac.lk", department: "Psychological Support", verification_status: "verified" },
-  ];
+  const counsellorsList = analytics?.counsellors || [];
 
   const filteredStudents = studentsList.filter((student: any) => {
     if (studentFilter === "registered") return student.type === "registered";
@@ -249,7 +247,7 @@ export default function AdminDashboardPage() {
                   <td className="py-4 px-4 text-gray-500">{counsellor.email}</td>
                   <td className="py-4 px-4 text-gray-600">{counsellor.department || "General Counselling"}</td>
                   <td className="py-4 px-4">
-                    {counsellor.verification_status === "verified" || counsellor.verification_status === "Active" ? (
+                    {counsellor.verification_status === "approved" || counsellor.verification_status === "verified" || counsellor.verification_status === "Active" ? (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                         <CheckCircle size={12} /> Verified
                       </span>
@@ -260,7 +258,7 @@ export default function AdminDashboardPage() {
                     )}
                   </td>
                   <td className="py-4 px-4 text-right space-x-2">
-                    {counsellor.verification_status !== "verified" && (
+                    {counsellor.verification_status !== "approved" && counsellor.verification_status !== "verified" && (
                       <button
                         onClick={() => handleVerifyCounsellor(counsellor.id)}
                         className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-all"
@@ -281,6 +279,9 @@ export default function AdminDashboardPage() {
           </table>
         </div>
       </div>
+
+      {/* Mental Health Screening, Operational Risk Overview, Alerts & Counsellor Assignments */}
+      <RiskOverviewPanel isAdmin={true} />
 
       {/* Severity Trends Chart (WBS 7.3) */}
       <div className="p-6 bg-white border border-gray-100 rounded-2xl shadow-sm">
@@ -305,5 +306,13 @@ export default function AdminDashboardPage() {
       </div>
 
     </div>
+  );
+}
+
+export default function AdminDashboardPage() {
+  return (
+    <AuthGuard allowedRoles={["admin", "supervisor"]}>
+      <AdminDashboardContent />
+    </AuthGuard>
   );
 }

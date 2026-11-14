@@ -2,6 +2,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
 import db from '../config/db.js';
+import { SECRET } from '../config.js';
 
 export const register = async (req, res) => {
     const { name, email, password } = req.body;
@@ -32,11 +33,10 @@ export const register = async (req, res) => {
             [name, email, hashedPassword, 'Student']
         );
 
-        const secretKey = process.env.JWT_SECRET || 'fallback_secret_key';
         const token = jwt.sign(
-            { id: result.insertId, role: 'Student' },
-            secretKey,
-            { expiresIn: '1h' }
+            { id: result.insertId, role: 'student' },
+            SECRET,
+            { expiresIn: '24h' }
         );
 
         global.io?.to('admin-room').emit('usersUpdated');
@@ -46,7 +46,7 @@ export const register = async (req, res) => {
             token,
             user: {
                 id: result.insertId,
-                role: 'Student'
+                role: 'student'
             }
         });
 
@@ -78,20 +78,18 @@ export const login = async (req, res) => {
             return res.status(401).json({ message: 'Invalid credentials.' });
         }
 
-        const secretKey = process.env.JWT_SECRET || 'fallback_secret_key'; 
-        
         const payload = {
             id: user.userId,
-            role: user.role
+            role: String(user.role || '').toLowerCase()
         };
 
-        const token = jwt.sign(payload, secretKey, { expiresIn: '1h' });
+        const token = jwt.sign(payload, SECRET, { expiresIn: '24h' });
 
         return res.status(200).json({
             message: 'Login successful.',
             token,
             userId: user.userId,
-            role: user.role
+            role: String(user.role || '').toLowerCase()
         });
 
     } catch (error) {
@@ -118,15 +116,13 @@ export const anonymousLogin = async (req, res) => {
             ]
         );
 
-        const secretKey = process.env.JWT_SECRET || 'fallback_secret_key';
-
         const token = jwt.sign(
             {
                 id: result.insertId,
                 role: "anonymous"
             },
-            secretKey,
-            { expiresIn: '1h' }
+            SECRET,
+            { expiresIn: '24h' }
         );
 
         res.status(201).json({

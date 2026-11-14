@@ -3,6 +3,7 @@ import passport from 'passport';
 import jwt from 'jsonwebtoken';
 
 import db from '../config/db.js';
+import { SECRET } from '../config.js';
 import { login, register, anonymousLogin } from '../controllers/authController.js';
 
 const router = express.Router();
@@ -81,12 +82,13 @@ router.get(
       // Generate CareBridge JWT
       const token = jwt.sign(
         {
+          id: userId,
           userId,
-          role
+          role: String(role).toLowerCase(),
         },
-        process.env.JWT_SECRET,
+        SECRET,
         {
-          expiresIn: "1h"
+          expiresIn: "24h"
         }
       );
 

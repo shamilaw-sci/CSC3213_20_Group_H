@@ -12,6 +12,10 @@ import adminRoutes from "./routes/adminRoutes.js";
 import counsellorRoutes from "./routes/counsellorRoutes.js";
 import sessionRoutes from "./routes/sessionRoutes.js";
 import availabilityRoutes from "./routes/availabilityRoutes.js";
+import phq9Routes from "./routes/phq9Routes.js";
+import voiceRoutes from "./routes/voiceRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js";
+import clinicalRoutes from "./routes/clinicalRoutes.js";
 
 dotenv.config();
 
@@ -59,6 +63,14 @@ app.use("/api/counsellors", counsellorRoutes);
 app.use("/api/sessions", sessionRoutes);
 
 app.use("/api/availability", availabilityRoutes);
+
+app.use("/api/phq9", phq9Routes);
+
+app.use("/api/voice", voiceRoutes);
+
+app.use("/api/notifications", notificationRoutes);
+
+app.use("/api/clinical", clinicalRoutes);
 
 app.post("/api/logs", (req, res) => {
   const {
@@ -123,6 +135,13 @@ app.use((req, res) => {
 
 app.use((err, req, res, next) => {
   console.error(err);
+
+  if (err.code === "LIMIT_FILE_SIZE") {
+    return res.status(400).json({
+      success: false,
+      error: "Uploaded file exceeds the 10 MB size limit.",
+    });
+  }
 
   res.status(err.status || 500).json({
     success: false,

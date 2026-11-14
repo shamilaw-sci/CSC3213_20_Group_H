@@ -2,8 +2,10 @@ import http from "http";
 import app from "./app.js";
 import { Server } from "socket.io";
 import pool, { testConnection } from "./config/db.js";
+import { runMigrations } from "./db/migrate.js";
 import jwt from "jsonwebtoken";
 import { SECRET } from "./config.js";
+import { escalateUnacknowledgedAlerts } from "./services/escalationService.js";
 
 const PORT = process.env.PORT || 5050;
 
@@ -48,6 +50,23 @@ io.on("connection", (socket) => {
       }
     } catch (error) {
       console.error("Admin socket authentication failed:", error.message);
+    }
+  });
+
+  socket.on("joinUserRoom", (token) => {
+    try {
+      const user = jwt.verify(token, SECRET);
+      if (user?.id) {
+        socket.join(`user-${user.id}`);
+      }
+      if (String(user.role).toLowerCase() === "counsellor") {
+        socket.join("counsellors-room");
+      }
+      if (["admin", "supervisor"].includes(String(user.role).toLowerCase())) {
+        socket.join("admin-room");
+      }
+    } catch (error) {
+      console.error("User socket authentication failed:", error.message);
     }
   });
 
@@ -119,6 +138,9 @@ async function start() {
     console.log(
       "Connected to MySQL successfully."
     );
+
+    await runMigrations();
+    console.log("Database schema verified.");
   } catch (err) {
     console.error(
       "FATAL: could not connect to MySQL:",
@@ -137,6 +159,14 @@ async function start() {
       `Server running on port ${PORT}`
     );
   });
+
+  // Periodic escalation check for unacknowledged high-risk alerts
+  const escalationInterval = setInterval(() => {
+    escalateUnacknowledgedAlerts().catch((err) =>
+      console.error("Escalation sweep failed:", err.message)
+    );
+  }, 60 * 1000);
+  escalationInterval.unref?.();
 }
 
 async function shutdown(signal) {
