@@ -31,6 +31,7 @@ export default function LoginPage() {
         );
       }
 
+      // --- CRITICAL STEP FOR MEMBER 401 ---
       // Store the JWT token & user info for the rest of the team
       localStorage.setItem("token", data.token);
 
@@ -38,23 +39,22 @@ export default function LoginPage() {
         "user",
         JSON.stringify({
           id: data.userId,
+          name: data.name || "User",
           role: data.role,
         }),
       );
       localStorage.setItem("role", data.role);
 
-      // Notify Navbar that authentication has changed
-      window.dispatchEvent(new Event("authChange"));
-
-      // Role based smart redirection
       const role = String(data.role || "").toLowerCase();
 
-      if (role === "counsellor") {
-        router.replace("/counsellor/dashboard");
-      } else if (role === "admin" || role === "supervisor") {
-        router.replace("/admin/dashboard");
+      if (role === "admin" || role === "supervisor") {
+        window.location.href = "/admin/dashboard";
+      } else if (role === "student") {
+        window.location.href = "/chat";
+      } else if (role === "counsellor") {
+        window.location.href = "/counsellor/dashboard";
       } else {
-        router.replace("/dashboard"); // Student or anonymous view
+        window.location.href = "/dashboard";
       }
     } catch (err: any) {
       setError(err.message);
@@ -76,27 +76,25 @@ export default function LoginPage() {
       const data = await res.json();
 
       console.log("Anonymous response:", data);
-      const userId = data.user?.id ?? data.userId ?? data.anonymousId;
-      const role = data.user?.role ?? data.role;
 
       // store anonymous session
       localStorage.setItem("token", data.token);
-      localStorage.setItem("role", role);
-      localStorage.setItem("userId", userId);
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          id: userId,
-          role,
-        }),
-      );
 
-      window.dispatchEvent(new Event("authChange"));
+      const anonymousUser = {
+          id: data.anonymousId,
+          role: "student",
+          name: "Anonymous User",
+          isAnonymous: true,
+      };
 
-      router.replace("/dashboard");
+      localStorage.setItem("user", JSON.stringify(anonymousUser));
+      localStorage.setItem("role", "student");
+      localStorage.setItem("userId", data.anonymousId);
 
-      // redirect
-      router.replace("/dashboard");
+      window.dispatchEvent(new Event("auth-changed"));
+
+      router.replace("/student/dashboard");
+
     } catch (err: any) {
       console.log("Anonymous error:", err);
       setError("Anonymous login failed");
@@ -156,6 +154,7 @@ export default function LoginPage() {
                 </label>
                 <button
                   type="button"
+                  onClick={() => router.push("/forgot-password")}
                   className="text-xs text-violet-600 dark:text-violet-400 hover:text-violet-500 transition-colors"
                 >
                   Forgot password?

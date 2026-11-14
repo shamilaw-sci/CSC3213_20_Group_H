@@ -3,6 +3,8 @@ import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { Strategy as LocalStrategy } from "passport-local";
 
+dotenv.config();
+
 // Conditionally load Google Strategy only if credentials are present
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_ID !== 'your_client_id_here') {
     passport.use(new GoogleStrategy({
