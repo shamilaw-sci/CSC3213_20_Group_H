@@ -1,39 +1,53 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import socket from "@/services/socket";
 import { logout } from "@/lib/auth";
+
+type EmergencyAlert = {
+  emergencyId?: number;
+  studentId?: number;
+  severityScore?: string;
+  description?: string;
+  timestamp?: string;
+  [key: string]: unknown;
+};
 
 export default function CounsellorDashboard() {
   const router = useRouter();
-
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const [isCounsellor, setIsCounsellor] = useState(false);
-  const [userName, setUserName] = useState("");
+  const [alerts, setAlerts] = useState<EmergencyAlert[]>([]);
+  const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    if (typeof window === "undefined") return;
 
-    if (!token) {
+    const token = localStorage.getItem("token");
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+    if (!token || user.role !== "counsellor") {
       router.replace("/login");
       return;
     }
 
-    try {
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      const role = String(user.role || "").toLowerCase();
+    setIsAuthorized(true);
 
-      if (role === "counsellor") {
-        setIsCounsellor(true);
-        setUserName(user.name || "Counsellor");
-      }
-    } catch {
-      setIsCounsellor(false);
-    } finally {
-      setIsCheckingAuth(false);
-    }
+    // Join the Counsellors Room for real-time emergency broadcasts
+    socket.emit("joinRoom", "counsellors-room");
+
+    const handleEmergencyAlert = (alertData: EmergencyAlert) => {
+      console.warn(
+        "🚨 Incoming Emergency Alert received via Socket.IO:",
+        alertData,
+      );
+      setAlerts((prev) => [alertData, ...prev]);
+    };
+
+    socket.on("emergencyAlert", handleEmergencyAlert);
+
+    return () => {
+      socket.off("emergencyAlert", handleEmergencyAlert);
+    };
   }, [router]);
 
   const handleLogout = () => {
@@ -41,72 +55,93 @@ export default function CounsellorDashboard() {
     router.replace("/login");
   };
 
-  if (isCheckingAuth) {
-    return <div className="p-10">Loading dashboard...</div>;
-  }
-
-  if (!isCounsellor) {
+  if (!isAuthorized) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-        <h1 className="text-2xl font-bold">Access Denied</h1>
-        <p>You do not have permission to access this page.</p>
-        <Link href="/dashboard" className="text-violet-600 underline">
-          Go to Dashboard
-        </Link>
-      </div>
+      <div style={{ padding: "40px" }}>Verifying counsellor credentials...</div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 md:p-10">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800">
-              Counsellor Dashboard
-            </h1>
-            <p className="text-gray-500 mt-2">
-              Welcome back, {userName}!
-            </p>
-          </div>
-
-          <button
-            onClick={handleLogout}
-            className="bg-red-500 text-white px-5 py-2 rounded-lg hover:bg-red-600"
-          >
-            Logout
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-xl shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-800">
-              Appointments
-            </h2>
-            <p className="text-gray-500 mt-2">
-              View and manage your appointments.
-            </p>
-          </div>
-
-          <div className="bg-white p-6 rounded-xl shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-800">
-              Student Requests
-            </h2>
-            <p className="text-gray-500 mt-2">
-              Review student counselling requests.
-            </p>
-          </div>
-
-          <div className="bg-white p-6 rounded-xl shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-800">
-              Availability
-            </h2>
-            <p className="text-gray-500 mt-2">
-              Manage your counselling availability.
-            </p>
-          </div>
-        </div>
+    <div
+      style={{
+        padding: "40px",
+        fontFamily: "sans-serif",
+        maxWidth: "800px",
+        margin: "0 auto",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "20px",
+        }}
+      >
+        <h1>Counsellor Emergency Control Center</h1>
+        <button
+          onClick={handleLogout}
+          style={{
+            padding: "8px 16px",
+            background: "#ef4444",
+            color: "#fff",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+          }}
+        >
+          Logout
+        </button>
       </div>
+
+      <p style={{ color: "#555" }}>
+        Listening for real-time emergency signals on room:{" "}
+        <strong>counsellors-room</strong>
+      </p>
+
+      <hr style={{ margin: "20px 0" }} />
+
+      <h2>Live Emergency Alerts</h2>
+      {alerts.length === 0 ? (
+        <p style={{ color: "#666", fontStyle: "italic" }}>
+          No emergency alerts received yet. Standing by...
+        </p>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          {alerts.map((alert, index) => (
+            <div
+              key={alert.emergencyId || index}
+              style={{
+                padding: "16px",
+                border: "2px solid #dc2626",
+                borderRadius: "8px",
+                backgroundColor: "#fef2f2",
+                color: "#991b1b",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  fontWeight: "bold",
+                }}
+              >
+                <span>🚨 Emergency ID: #{alert.emergencyId}</span>
+                <span>Severity: {alert.severityScore}</span>
+              </div>
+              <p style={{ margin: "8px 0" }}>
+                <strong>Student ID:</strong> {alert.studentId}
+              </p>
+              <p style={{ margin: "8px 0" }}>
+                <strong>Description:</strong> {alert.description}
+              </p>
+              <small style={{ color: "#6b7280" }}>
+                Timestamp: {alert.timestamp || new Date().toISOString()}
+              </small>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
