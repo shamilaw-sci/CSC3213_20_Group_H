@@ -2,8 +2,8 @@ import http from "http";
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import session from "express-session";
 import { Server } from "socket.io";
+import rateLimit from "express-rate-limit";
 
 import passport from "./config/passport.js";
 import pool, { testConnection } from "./config/db.js";
@@ -14,6 +14,7 @@ import chatRoutes from "./routes/chatRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import counsellorRoutes from "./routes/counsellorRoutes.js";
 import sessionRoutes from "./routes/sessionRoutes.js";
+import availabilityRoutes from "./routes/availabilityRoutes.js";
 
 dotenv.config();
 
@@ -39,18 +40,16 @@ app.use(
 app.use(express.json());
 
 app.use(
-  session({
-    secret: process.env.JWT_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: process.env.NODE_ENV === "production",
-    },
+  "/api",
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
   })
 );
 
 app.use(passport.initialize());
-app.use(passport.session());
 
 /*
 |--------------------------------------------------------------------------
@@ -85,6 +84,9 @@ app.use("/api/counsellors", counsellorRoutes);
 
 // Session History
 app.use("/api/sessions", sessionRoutes);
+
+// Availability
+app.use("/api/availability", availabilityRoutes);
 
 /*
 |--------------------------------------------------------------------------
