@@ -1,173 +1,263 @@
-import db from '../config/db.js';
-import { assessSeverity, ValidationError } from '../utils/riskAssessment.js';
-import sgMail from '@sendgrid/mail';
-import twilio from 'twilio';
 
+import db from "../config/db.js";
+import crypto from "crypto";
+
+// --------------------------------------------------
+// Student: Create an emergency request
+// --------------------------------------------------
 export const triggerEmergency = async (req, res) => {
-    // req.user is supplied by the JWT auth middleware; guard against it being missing
-    if (!req.user || !req.user.id) {
-        return res.status(401).json({ error: 'Authentication required to trigger an emergency alert.' });
-    }
-    const studentId = req.user.id;
-    const { description, aiConfidence } = req.body ?? {};
-
-    let severityScore;
-    let fallbackTriggered;
-    let matchedKeywords;
-    let normalizedDescription;
-    let normalizedConfidence;
-
     try {
-        ({
-            severityScore,
-            fallbackTriggered,
-            matchedKeywords,
-            aiConfidence: normalizedConfidence,
-            description: normalizedDescription,
-        } = assessSeverity({ description, aiConfidence }));
-    } catch (error) {
-        if (error instanceof ValidationError) {
-            return res.status(400).json({ error: error.message });
+        const studentId = req.user?.id;
+        const studentName = req.user?.name;
+
+        if (!studentId) {
+            return res.status(401).json({
+                message: "User authentication required."
+            });
         }
-        console.error('Unexpected error assessing emergency severity:', error);
-        return res.status(500).json({ error: 'Critical system error processing emergency request.' });
-    }
 
-    try {
-        // 1. Log Emergency to MySQL Database
+        const [users] = await db.query(
+            "SELECT email FROM users WHERE id = ?",
+            [studentId]
+        );
+
+        if (users.length === 0) {
+            return res.status(404).json({
+                message: "Student account not found."
+            });
+        }
+
+        const studentEmail = users[0].email;
+
+        // Generate one unique room ID for this request.
+        const roomId = crypto.randomUUID();
+
         const [result] = await db.query(
-            `INSERT INTO emergencies (student_id, severity_score, description, ai_confidence, fallback_triggered, status)
-             VALUES (?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO emergency_requests
+                (student_id, student_name, student_email, room_id, status)
+             VALUES (?, ?, ?, ?, ?)`,
             [
                 studentId,
-                severityScore,
-                normalizedDescription || 'Immediate crisis assistance requested',
-                normalizedConfidence,
-                fallbackTriggered,
-                'Pending_Acknowledgment'
+                studentName || "Student",
+                studentEmail,
+                roomId,
+                "Pending"
             ]
         );
 
-        const emergencyId = result.insertId;
+        const emergencyRequest = {
+            id: result.insertId,
+            student_id: studentId,
+            student_name: studentName || "Student",
+            student_email: studentEmail,
+            room_id: roomId,
+            status: "Pending"
+        };
 
-        // 2. Broadcast Real-Time Alert to Counsellors via Socket.IO
+        // Notify connected clients that a new request is available.
         if (global.io) {
-            global.io.to('counsellors-room').emit('emergencyAlert', {
-                emergencyId,
+            global.io.emit("emergencyAlert", {
+                emergencyId: result.insertId,
                 studentId,
-                severityScore,
-                fallbackTriggered,
-                description: normalizedDescription,
-                timestamp: new Date().toISOString()
+                studentName: studentName || "Student",
+                studentEmail,
+                roomId
             });
         }
 
-        // 3. Trigger Redundant Notifications (In-App -> SendGrid -> Twilio fallback)
-        await dispatchRedundantNotifications({
-            emergencyId,
-            studentId,
-            severityScore,
-            fallbackTriggered,
-            matchedKeywords,
-            description: normalizedDescription || 'Immediate crisis assistance requested',
-        });
-
-        // 4. Immediate Acknowledgement Response back to the student (Satisfies NF-PERF-1.5 <= 3s)
         return res.status(201).json({
             success: true,
-            message: 'Help request received. Emergency protocols activated. An active responder has been notified.',
-            emergencyId,
-            severity: severityScore
+            message: "Emergency request created successfully.",
+            request: emergencyRequest
         });
 
     } catch (error) {
-        console.error('Emergency trigger failure:', error);
-        return res.status(500).json({ error: 'Critical system error processing emergency request.' });
+        console.error("Trigger emergency error:", error);
+
+        return res.status(500).json({
+            message: "Unable to create emergency request."
+        });
     }
 };
 
-async function dispatchRedundantNotifications(details) {
-    const emailRecipients = getConfiguredRecipients('ON_CALL_COUNSELLOR_EMAILS');
-    const phoneRecipients = getConfiguredRecipients('ON_CALL_COUNSELLOR_PHONES');
-    const sendSmsRedundantly = process.env.TWILIO_REDUNDANT_ESCALATION === 'true';
-    let emailSent = false;
-    let smsSent = false;
 
-    if (process.env.SENDGRID_API_KEY && process.env.SENDGRID_FROM_EMAIL && emailRecipients.length) {
-        try {
-            sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-            await sgMail.send({
-                to: emailRecipients,
-                from: process.env.SENDGRID_FROM_EMAIL,
-                subject: `URGENT CareBridge emergency alert #${details.emergencyId}`,
-                text: [
-                    'An emergency alert requires immediate counsellor attention.',
-                    `Emergency ID: ${details.emergencyId}`,
-                    `Severity: ${details.severityScore}`,
-                    `Student ID: ${details.studentId}`,
-                    `Description: ${details.description}`,
-                    `Time: ${new Date().toISOString()}`,
-                ].join('\n'),
-            });
-            emailSent = true;
-        } catch (error) {
-            console.error('SendGrid notification failed:', error.message);
-        }
-    } else {
-        console.error(
-            'SendGrid notification skipped: configure SENDGRID_API_KEY, SENDGRID_FROM_EMAIL, and ON_CALL_COUNSELLOR_EMAILS.'
+// --------------------------------------------------
+// Counsellor: Get all emergency requests
+// --------------------------------------------------
+export const getEmergencyRequests = async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT *
+            FROM emergency_requests
+            ORDER BY created_at DESC
+        `);
+
+        return res.json(rows);
+
+    } catch (error) {
+        console.error("Get emergency requests error:", error);
+
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
+
+// --------------------------------------------------
+// Counsellor: Accept an emergency request
+// --------------------------------------------------
+export const acceptEmergencyRequest = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Get the existing request and its original room ID.
+        const [rows] = await db.query(
+            `SELECT *
+             FROM emergency_requests
+             WHERE id = ?`,
+            [id]
         );
-    }
 
-    if ((!emailSent || sendSmsRedundantly) && phoneRecipients.length) {
-        if (
-            process.env.TWILIO_ACCOUNT_SID &&
-            process.env.TWILIO_AUTH_TOKEN &&
-            process.env.TWILIO_FROM_NUMBER
-        ) {
-            try {
-                const client = twilio(
-                    process.env.TWILIO_ACCOUNT_SID,
-                    process.env.TWILIO_AUTH_TOKEN
-                );
-                const message = [
-                    'URGENT CareBridge emergency alert',
-                    `ID: ${details.emergencyId}`,
-                    `Severity: ${details.severityScore}`,
-                    `Description: ${details.description}`,
-                ].join(' | ');
-
-                await Promise.all(
-                    phoneRecipients.map((to) =>
-                        client.messages.create({
-                            body: message,
-                            from: process.env.TWILIO_FROM_NUMBER,
-                            to,
-                        })
-                    )
-                );
-                smsSent = true;
-            } catch (error) {
-                console.error('Twilio notification failed:', error.message);
-            }
-        } else {
-            console.error(
-                'Twilio notification skipped: configure TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_FROM_NUMBER.'
-            );
+        if (rows.length === 0) {
+            return res.status(404).json({
+                message: "Emergency request not found."
+            });
         }
+
+        const request = rows[0];
+
+        if (request.status !== "Pending") {
+            return res.status(409).json({
+                message: `This request is already ${request.status}.`
+            });
+        }
+
+        if (!request.room_id) {
+            return res.status(500).json({
+                message: "The emergency request has no room ID."
+            });
+        }
+
+        // Do not generate another room ID here.
+        const [result] = await db.query(
+            `UPDATE emergency_requests
+             SET status = 'Accepted'
+             WHERE id = ? AND status = 'Pending'`,
+            [id]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(409).json({
+                message: "This request has already been accepted or updated."
+            });
+        }
+
+        // Notify the student using the SAME room ID.
+        if (global.io) {
+            global.io.emit("emergency-call", {
+                requestId: Number(id),
+                studentId: request.student_id,
+                studentName: request.student_name,
+                studentEmail: request.student_email,
+                roomId: request.room_id
+            });
+        }
+
+        return res.json({
+            success: true,
+            roomId: request.room_id,
+            requestId: Number(id),
+            message: "Emergency request accepted."
+        });
+
+    } catch (error) {
+        console.error("Accept emergency request error:", error);
+
+        return res.status(500).json({
+            message: error.message
+        });
     }
+};
 
-    if (!emailSent && !smsSent) {
-        console.error('Emergency notification delivery failed on all configured channels.');
+
+// --------------------------------------------------
+// Complete emergency request
+// --------------------------------------------------
+export const completeEmergencyRequest = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const [result] = await db.query(
+            `UPDATE emergency_requests
+             SET status = 'Completed'
+             WHERE id = ? AND status = 'Accepted'`,
+            [id]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({
+                message: "Accepted emergency request not found."
+            });
+        }
+
+        return res.json({
+            success: true,
+            message: "Emergency request completed."
+        });
+
+    } catch (error) {
+        console.error("Complete emergency request error:", error);
+
+        return res.status(500).json({
+            message: error.message
+        });
     }
+};
 
-    const riskFlags = details.matchedKeywords?.length ? details.matchedKeywords.join(', ') : 'none';
-    console.log(`[EMERGENCY DISPATCHED] ID: ${details.emergencyId} | Severity: ${details.severityScore} | Fallback: ${details.fallbackTriggered} | RiskFlags: ${riskFlags} | Email: ${emailSent} | SMS: ${smsSent}`);
-}
 
-function getConfiguredRecipients(environmentVariable) {
-    return (process.env[environmentVariable] || '')
-        .split(',')
-        .map((recipient) => recipient.trim())
-        .filter(Boolean);
-}
+// --------------------------------------------------
+// Cancel emergency request
+// --------------------------------------------------
+export const cancelEmergencyRequest = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const [result] = await db.query(
+            `UPDATE emergency_requests
+             SET status = 'Cancelled'
+             WHERE id = ? AND status IN ('Pending', 'Accepted')`,
+            [id]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({
+                message: "Active emergency request not found."
+            });
+        }
+
+        return res.json({
+            success: true,
+            message: "Emergency request cancelled."
+        });
+
+    } catch (error) {
+        console.error("Cancel emergency request error:", error);
+
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
+
+// --------------------------------------------------
+// Default export
+// --------------------------------------------------
+export default {
+    triggerEmergency,
+    getEmergencyRequests,
+    acceptEmergencyRequest,
+    completeEmergencyRequest,
+    cancelEmergencyRequest
+};

@@ -8,23 +8,23 @@ export default function AvailabilityForm() {
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
 
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);       //Editing 
   const [editStart, setEditStart] = useState("");
   const [editEnd, setEditEnd] = useState("");
   const [editStatus, setEditStatus] = useState("Available");
 
   const counsellorId = 1;
 
-  const loadSlots = async () => {
+  const loadSlots = async () => {                              //Loading existing availability slots
     try {
-      const response = await fetch( 
-        "http://localhost:6001/api/availability"
-      );
-
+      const response = await fetch(   
+        "http://localhost:6001/api/availability"                   //fetch() sends an HTTP request to your Express backend.
+      );                                                           //The backend receives this request and retrieves availability records from MySQL.
+                                                                  
       const data = await response.json();
 
-      setSlots(data);
-    } catch (error) {
+      setSlots(data);             //Store the Data
+    } catch (error) {             // Error ahndeling 
       console.error(error);
     }
   };
@@ -53,12 +53,12 @@ export default function AvailabilityForm() {
 
       const result = await response.json();
 
-      if (!response.ok) {
+      if (!response.ok) {                                  // check the backend response
         alert(result.message);
         return;
       }
 
-      alert("Availability slot added");
+      alert("Availability slot added");             // After successful insertion Display a success message.  
 
       setDate("");
       setStartTime("");
@@ -71,7 +71,7 @@ export default function AvailabilityForm() {
     }
   };
 
-  const updateSlot = async () => {  
+  const updateSlot = async () => {                           //Updating-PUT  an existing availability slot
     try {
       const response = await fetch(
         `http://localhost:6001/api/availability/${editingId}`,
@@ -80,7 +80,7 @@ export default function AvailabilityForm() {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
+          body: JSON.stringify({                  //These info are updating
             startTime: editStart,
             endTime: editEnd,
             status: editStatus,
@@ -88,7 +88,7 @@ export default function AvailabilityForm() {
         }
       );
 
-      const result = await response.json();
+      const result = await response.json();         
 
       if (!response.ok) {
         alert(result.message);
@@ -106,7 +106,7 @@ export default function AvailabilityForm() {
     }
   };
 
-  const deleteSlot = async (id: number) => {
+  const deleteSlot = async (id: number) => {          //This function deletes an availability record.
     const confirmed = confirm(
       "Delete this availability slot?"
     );
@@ -115,7 +115,7 @@ export default function AvailabilityForm() {
 
     try {
       await fetch(
-        `http://localhost:6001/api/availability/${id}`,
+        `http://localhost:6001/api/availability/${id}`,      //Send the DELETE reuest and delete
         {
           method: "DELETE",
         }
@@ -127,7 +127,7 @@ export default function AvailabilityForm() {
     }
   };
 
-  const totalSlots = slots.length;
+  const totalSlots = slots.length;                        //Calculating availability statistics
 
   const availableSlots = slots.filter(
     (slot) =>
@@ -214,7 +214,7 @@ export default function AvailabilityForm() {
           />
         </div>
 
-        <button
+        <button                                         //Add Slot button
           onClick={handleAddSlot}
           className="mt-4 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
         >
