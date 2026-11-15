@@ -67,7 +67,7 @@ npm install
    matching the database container's credentials from the root `.env`:
 
 ```env
-PORT=5050
+PORT=6001
 DB_HOST=127.0.0.1
 DB_PORT=3306
 DB_USER=carebridge
@@ -76,7 +76,7 @@ DB_NAME=mind_ease_db
 JWT_SECRET=your_jwt_secret
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
-GOOGLE_CALLBACK_URL=http://localhost:5050/api/auth/google/callback
+GOOGLE_CALLBACK_URL=http://localhost:6001/api/auth/google/callback
 FRONTEND_URL=http://localhost:3000
 SENDGRID_API_KEY=your_sendgrid_api_key
 SENDGRID_FROM_EMAIL=alerts@example.com
@@ -93,7 +93,7 @@ recipient lists. SendGrid is attempted first; Twilio is used when email fails or
 when `TWILIO_REDUNDANT_ESCALATION=true`. Provider credentials and recipient
 contact details must be supplied through environment variables.
 
-The default port is `5050`, not `5000` — on macOS, `5000` is commonly held by the
+The default port is `6001`, not `5050` — on macOS, `5000` is commonly held by the
 AirPlay Receiver service, causing an `EADDRINUSE` crash on startup.
 
 4. (Optional) Seed demo accounts (admin + student):
@@ -113,7 +113,7 @@ error if it can't reach MySQL (e.g. the Docker container isn't running yet).
 
 6. The backend API will run on:
 
-- `http://localhost:5050`
+- `http://localhost:6001`
 
 ## Frontend Setup
 
@@ -133,7 +133,7 @@ npm install
    at the backend:
 
 ```env
-NEXT_PUBLIC_API_BASE_URL=http://localhost:5050
+NEXT_PUBLIC_API_BASE_URL=http://localhost:6001
 ```
 
 4. Start the Next.js development server:
@@ -149,7 +149,7 @@ npm run dev
 ## Notes
 
 - The frontend reads the backend URL from `NEXT_PUBLIC_API_BASE_URL` (see
-  `frontend/services/api.ts`), defaulting to `http://localhost:5050` if unset.
+  `frontend/services/api.ts`), defaulting to `http://localhost:6001` if unset.
 - The emergency endpoint is available at `<backend URL>/api/emergency`.
 - The auth routes are available under `<backend URL>/api/auth`.
 - Google OAuth is only enabled when `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are provided.

@@ -44,7 +44,7 @@ export default function AppointmentBooking() {
 
   const fetchCounsellors = async () => {
     try {
-      const res = await fetch("http://localhost:5050/api/counsellors");
+      const res = await fetch("http://localhost:6001/api/counsellors");
 
       const data = await res.json();
 
@@ -64,7 +64,7 @@ export default function AppointmentBooking() {
 
       if (!user.id) return;
 
-      const res = await fetch(`http://localhost:5050/api/sessions/${user.id}`);
+      const res = await fetch(`http://localhost:6001/api/sessions/${user.id}`);
 
       const data = await res.json();
 
@@ -89,7 +89,7 @@ export default function AppointmentBooking() {
       }
 
       const res = await fetch(
-        `http://localhost:5050/api/counsellors/${counsellorId}/availability`,
+        `http://localhost:6001/api/counsellors/${counsellorId}/availability`,
       );
 
       const data = await res.json();
