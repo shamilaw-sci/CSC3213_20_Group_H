@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -5,69 +6,51 @@ import { useEffect, useState } from "react";
 export default function WelcomeBanner() {
   const [userName, setUserName] = useState("Student");
   const [isAnonymous, setIsAnonymous] = useState(false);
-  const [greeting, setGreeting] = useState("Good morning");
+  const [greeting, setGreeting] = useState("Welcome");
 
   useEffect(() => {
-    const userData = localStorage.getItem("user");
+    const storedUser = localStorage.getItem("user");
 
-    if (userData) {
+    if (storedUser) {
       try {
-        const user = JSON.parse(userData);
-
-        if (user.name) {
-          setUserName(user.name);
-        }
-
-        if (user.isAnonymous === true) {
-          setIsAnonymous(true);
-          setUserName(user.name || "Anonymous User");
-        }
-      } catch (error) {
-        console.error(
-          "Unable to read user information:",
-          error
-        );
+        const user = JSON.parse(storedUser);
+        setUserName(user.name || "Student");
+        setIsAnonymous(Boolean(user.isAnonymous));
+      } catch {
+        setUserName("Student");
       }
     }
 
-    const updateGreeting = () => {
-      const hour = new Date().getHours();
+    const hour = new Date().getHours();
 
-      if (hour >= 5 && hour < 12) {
-        setGreeting("Good morning");
-      } else if (hour >= 12 && hour < 17) {
-        setGreeting("Good afternoon");
-      } else {
-        setGreeting("Good evening");
-      }
-    };
-
-    updateGreeting();
+    if (hour < 12) {
+      setGreeting("Good morning");
+    } else if (hour < 17) {
+      setGreeting("Good afternoon");
+    } else {
+      setGreeting("Good evening");
+    }
   }, []);
 
   return (
-    <section className="mb-8 rounded-3xl bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 text-white p-6 md:p-8 shadow-lg">
-      <div className="flex items-center justify-between gap-6">
-        <div>
-          <p className="text-sm font-semibold text-blue-100 mb-2">
-            Student Dashboard
-          </p>
+    <section className="rounded-2xl border border-[#e5e5e5] bg-white px-7 py-9 md:px-10 md:py-12">
+      <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#777777]">
+        STUDENT DASHBOARD
+      </p>
 
-          <h2 className="text-3xl md:text-4xl font-bold">
-            {greeting}, {userName} 👋
-          </h2>
+      <h1 className="mt-4 text-3xl font-bold leading-tight text-[#171717] md:text-4xl">
+        {greeting}, {userName} 🤍
+      </h1>
 
-          <p className="mt-3 text-blue-50 max-w-xl leading-relaxed">
-            {isAnonymous
-              ? "You're using CareBridge anonymously. You can explore support and wellbeing services without creating a personal profile."
-              : "Take a moment to check in with yourself and keep taking care of your wellbeing."}
-          </p>
-        </div>
+      <p className="mt-5 max-w-2xl text-base leading-8 text-[#555555]">
+        {isAnonymous
+          ? "This is your space to pause, reflect and take care of yourself. Your privacy matters, and support is always here when you need it."
+          : "Take a gentle moment for yourself. Your wellbeing matters, your feelings are important, and you deserve kindness and support every step of the way."}
+      </p>
 
-        <div className="hidden md:flex w-20 h-20 rounded-2xl bg-white/15 backdrop-blur-sm items-center justify-center text-4xl border border-white/20">
-          🌱
-        </div>
-      </div>
+      <p className="mt-5 text-sm font-semibold text-[#333333]">
+        Take a deep breath. You're doing better than you think.
+      </p>
     </section>
   );
 }

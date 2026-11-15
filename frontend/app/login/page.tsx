@@ -103,129 +103,148 @@ export default function LoginPage() {
     }
   };
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950 px-4 select-none relative overflow-hidden">
-      {/* Background decoration elements */}
-      <div className="absolute top-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] rounded-full bg-violet-600/20 blur-[120px]" />
-        <div className="absolute top-[60%] -right-[10%] w-[40%] h-[50%] rounded-full bg-cyan-500/20 blur-[120px]" />
-      </div>
+  
+return (
+  <div className="min-h-screen flex items-center justify-center bg-[#F7F7F7] px-4 py-10 select-none">
 
-      <div className="w-full max-w-md bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl rounded-3xl shadow-xl border border-white/20 dark:border-white/10 overflow-hidden relative z-10 transition-all duration-300 hover:shadow-2xl">
-        <div className="p-8">
-          <div className="text-center mb-10">
-            <h1
-              className="text-3xl font-bold bg-gradient-to-r from-violet-600 to-cyan-500 bg-clip-text text-transparent mb-2 inline-block cursor-pointer"
-              onClick={() => router.push("/")}
-            >
-              CareBridge
-            </h1>
-            <p className="text-zinc-500 dark:text-zinc-400 text-sm">
-              Sign in to access your mental health dashboard
-            </p>
-          </div>
+    <div className="w-full max-w-md bg-white rounded-[28px] shadow-[0_8px_30px_rgba(0,0,0,0.05)] border border-[#E8E8E8] overflow-hidden">
 
-          <form onSubmit={handleLogin} className="space-y-6">
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5"
-              >
-                Email Address
-              </label>
-              <input
-                id="email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-zinc-100/50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 transition-all placeholder:text-zinc-400 text-zinc-900 dark:text-zinc-100"
-                placeholder="student@pdn.ac.lk"
-              />
-            </div>
+      <div className="p-8 sm:p-10">
 
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label
-                  htmlFor="password"
-                  className="block text-sm font-medium text-zinc-700 dark:text-zinc-300"
-                >
-                  Password
-                </label>
-                <button
-                  type="button"
-                  onClick={() => router.push("/forgot-password")}
-                  className="text-xs text-violet-600 dark:text-violet-400 hover:text-violet-500 transition-colors"
-                >
-                  Forgot password?
-                </button>
-              </div>
-              <input
-                id="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-zinc-100/50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 transition-all placeholder:text-zinc-400 text-zinc-900 dark:text-zinc-100"
-                placeholder="••••••••"
-              />
-            </div>
+        {/* Heading */}
+        <div className="text-center mb-9">
+          <h1
+            className="text-3xl font-bold text-[#171717] mb-3 cursor-pointer"
+            onClick={() => router.push("/")}
+          >
+            Welcome back
+          </h1>
 
-            {error && (
-              <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl flex items-start gap-3 transition-all duration-200">
-                <p className="text-sm text-red-600 dark:text-red-400">
-                  {error}
-                </p>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className={`w-full py-3 px-4 rounded-xl text-white font-medium shadow-lg transition-all duration-300 flex justify-center items-center gap-2
-                ${
-                  loading
-                    ? "bg-violet-400 cursor-not-allowed"
-                    : "bg-violet-600 hover:bg-violet-500 hover:shadow-violet-500/25 transform hover:-translate-y-0.5 active:translate-y-0"
-                }`}
-            >
-              {loading ? "Verifying..." : "Sign in"}
-            </button>
-
-            {/* ANONYMOUS BUTTON */}
-            <button
-              type="button"
-              onClick={handleAnonymousLogin}
-              disabled={loading}
-              className="w-full mt-3 py-3 px-4 rounded-xl border border-violet-500 text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-zinc-800 transition-all"
-            >
-              Continue as Anonymous
-            </button>
-
-            {/* GOOGLE LOGIN BUTTON */}
-            <button
-              type="button"
-              onClick={() => {
-                window.location.href = `${API_BASE_URL}/api/auth/google`;
-              }}
-              className="w-full mt-3 py-3 px-4 rounded-xl bg-red-500 text-white font-medium hover:bg-red-400 transition-all"
-            >
-              Continue with Google
-            </button>
-          </form>
-
-          <div className="mt-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
-            Don't have an account?{" "}
-            <button
-              type="button"
-              onClick={() => router.push("/register")}
-              className="font-semibold text-violet-600 dark:text-violet-400 hover:text-violet-500 transition-colors bg-none border-none cursor-pointer"
-            >
-              Sign up
-            </button>
-          </div>
+          <p className="text-[#666666] text-sm leading-relaxed">
+            Sign in to access your CareBridge student space
+          </p>
         </div>
+
+        <form onSubmit={handleLogin} className="space-y-5">
+
+          {/* Email Address */}
+          <div>
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-[#333333] mb-2"
+            >
+              Email Address
+            </label>
+
+            <input
+              id="email"
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-4 py-3.5 rounded-xl bg-white border border-[#E5E5E5] focus:outline-none focus:ring-2 focus:ring-[#171717]/10 focus:border-[#171717] transition-all placeholder:text-[#A3A3A3] text-[#171717] text-sm"
+              placeholder="student@pdn.ac.lk"
+            />
+          </div>
+
+          {/* Password */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-[#333333]"
+              >
+                Password
+              </label>
+
+              <button
+                type="button"
+                onClick={() => router.push("/forgot-password")}
+                className="text-xs font-medium text-[#555555] hover:text-black transition-colors"
+              >
+                Forgot password?
+              </button>
+            </div>
+
+            <input
+              id="password"
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-3.5 rounded-xl bg-white border border-[#E5E5E5] focus:outline-none focus:ring-2 focus:ring-[#171717]/10 focus:border-[#171717] transition-all placeholder:text-[#A3A3A3] text-[#171717] text-sm"
+              placeholder="••••••••"
+            />
+          </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="p-3 bg-[#F5F5F5] border border-[#E5E5E5] rounded-xl">
+              <p className="text-sm text-red-700">
+                {error}
+              </p>
+            </div>
+          )}
+
+          {/* Sign In Button */}
+          <button
+            type="submit"
+            disabled={loading}
+            className={`w-full py-3.5 px-4 rounded-xl text-white font-semibold text-sm transition-all duration-300 flex justify-center items-center gap-2
+              ${
+                loading
+                  ? "bg-[#777777] cursor-not-allowed"
+                  : "bg-[#171717] hover:bg-[#333333] active:scale-[0.99]"
+              }`}
+          >
+            {loading ? "Verifying..." : "Sign in"}
+          </button>
+
+          {/* Divider */}
+          <div className="flex items-center gap-4 py-1">
+            <div className="flex-1 h-px bg-[#E8E8E8]" />
+            <span className="text-xs text-[#888888]">or</span>
+            <div className="flex-1 h-px bg-[#E8E8E8]" />
+          </div>
+
+          {/* Anonymous Login */}
+          <button
+            type="button"
+            onClick={handleAnonymousLogin}
+            disabled={loading}
+            className="w-full py-3.5 px-4 rounded-xl border border-[#E5E5E5] bg-white text-[#171717] text-sm font-medium hover:bg-[#F7F7F7] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          >
+            Continue as Anonymous
+          </button>
+
+          {/* Google Login */}
+          <button
+            type="button"
+            onClick={() => {
+              window.location.href = `${API_BASE_URL}/api/auth/google`;
+            }}
+            className="w-full py-3.5 px-4 rounded-xl border border-[#E5E5E5] bg-white text-[#171717] text-sm font-medium hover:bg-[#F7F7F7] transition-all"
+          >
+            Continue with Google
+          </button>
+
+        </form>
+
+        {/* Sign Up */}
+        <div className="mt-8 text-center text-sm text-[#666666]">
+          Don't have an account?{" "}
+          <button
+            type="button"
+            onClick={() => router.push("/register")}
+            className="font-semibold text-[#171717] hover:underline transition-colors bg-none border-none cursor-pointer"
+          >
+            Sign up
+          </button>
+        </div>
+
       </div>
     </div>
-  );
+  </div>
+);
+
 }
