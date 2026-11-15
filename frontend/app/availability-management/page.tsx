@@ -3,7 +3,7 @@ import AvailabilityForm from "@/components/AvailabilityForm";
 
 export default function AvailabilityManagementPage() {
   return (
-    <AuthGuard>
+    <AuthGuard>          
       <AvailabilityForm />
     </AuthGuard>
   );

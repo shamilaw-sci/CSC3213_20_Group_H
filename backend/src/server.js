@@ -20,7 +20,7 @@ dotenv.config();
 
 const app = express();
 
-const PORT = process.env.PORT || 5050;
+const PORT = process.env.PORT || 6001;    //5050 oLD       
 
 /*
 |--------------------------------------------------------------------------

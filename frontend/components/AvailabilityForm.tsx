@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-export default function AvailabilityForm() {
+export default function AvailabilityForm() {          
   const [slots, setSlots] = useState<any[]>([]);
   const [date, setDate] = useState("");
   const [startTime, setStartTime] = useState("");
@@ -17,8 +17,8 @@ export default function AvailabilityForm() {
 
   const loadSlots = async () => {
     try {
-      const response = await fetch(
-        "http://localhost:5050/api/availability"
+      const response = await fetch( 
+        "http://localhost:6001/api/availability"
       );
 
       const data = await response.json();
@@ -30,13 +30,13 @@ export default function AvailabilityForm() {
   };
 
   useEffect(() => {
-    loadSlots();
+    loadSlots();          //Load Existing Slots                                     
   }, []);
 
-  const handleAddSlot = async () => {
+  const handleAddSlot = async () => {                           //Add Availability Slot
     try {
       const response = await fetch(
-        "http://localhost:5050/api/availability",
+        "http://localhost:6001/api/availability",
         {
           method: "POST",
           headers: {
@@ -71,10 +71,10 @@ export default function AvailabilityForm() {
     }
   };
 
-  const updateSlot = async () => {
+  const updateSlot = async () => {  
     try {
       const response = await fetch(
-        `http://localhost:5050/api/availability/${editingId}`,
+        `http://localhost:6001/api/availability/${editingId}`,
         {
           method: "PUT",
           headers: {
@@ -115,7 +115,7 @@ export default function AvailabilityForm() {
 
     try {
       await fetch(
-        `http://localhost:5050/api/availability/${id}`,
+        `http://localhost:6001/api/availability/${id}`,
         {
           method: "DELETE",
         }
