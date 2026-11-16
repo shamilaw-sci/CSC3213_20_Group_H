@@ -97,7 +97,7 @@ export const login = async (req, res) => {
 
     try {
         const [rows] = await db.query(
-            'SELECT `id` as `userId`, `name`, `email`, `password`, `role` FROM `users` WHERE `email` = ?',
+            'SELECT `id` as `userId`, `name`, `email`, `password`, `role`, `is_suspended` FROM `users` WHERE `email` = ?',
             [email]
         );
 
@@ -108,6 +108,12 @@ export const login = async (req, res) => {
         }
 
         const user = rows[0];
+
+        if (user.is_suspended) {
+            return res.status(403).json({
+                message: 'This account has been suspended.'
+            });
+        }
 
         const isMatch = await bcrypt.compare(password, user.password);
 

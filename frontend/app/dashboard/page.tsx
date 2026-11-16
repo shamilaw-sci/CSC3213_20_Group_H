@@ -45,7 +45,7 @@ export default function Dashboard() {
       setEmergencyAlert(alertData);
     };
 
-    socket.emit("joinRoom", "counsellors-room");
+    socket.emit("joinRoom", `counsellor-${userId}`);
     socket.on("emergencyAlert", handleEmergencyAlert);
 
     return () => {

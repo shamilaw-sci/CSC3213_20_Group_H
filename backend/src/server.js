@@ -1,4 +1,3 @@
-
 import http from "http";
 import express from "express";
 import cors from "cors";
@@ -10,6 +9,7 @@ import rateLimit from "express-rate-limit";
 import passport from "./config/passport.js";
 import { SECRET } from "./config.js";
 import pool, { testConnection } from "./config/db.js";
+import { processPendingNotifications } from "./services/notificationWorker.js";
 
 import authRoutes from "./routes/authRoutes.js";
 import emergencyRoutes from "./routes/emergencyRoutes.js";
@@ -22,7 +22,8 @@ import availabilityRoutes from "./routes/availabilityRoutes.js";
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 6001;
+
+const PORT = process.env.PORT || 5050;
 
 /*
 |--------------------------------------------------------------------------
@@ -32,10 +33,8 @@ const PORT = process.env.PORT || 6001;
 
 app.use(
   cors({
-    origin: [
-      "http://localhost:3000",
-      "http://localhost:3001",
-    ],
+    origin: ["http://localhost:3000",
+      "http://localhost:3001"],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
@@ -72,17 +71,30 @@ app.get("/", (req, res) => {
 |--------------------------------------------------------------------------
 */
 
+// Authentication
 app.use("/api/auth", authRoutes);
+
+// Emergency Support
 app.use("/api/emergency", emergencyRoutes);
+
+// Patient-friendly counselling chatbot
 app.use("/api/chat", chatRoutes);
+
+// Admin
 app.use("/api/admin", adminRoutes);
+
+// Counsellors & Booking
 app.use("/api/counsellors", counsellorRoutes);
+
+// Session History
 app.use("/api/sessions", sessionRoutes);
+
+// Availability
 app.use("/api/availability", availabilityRoutes);
 
 /*
 |--------------------------------------------------------------------------
-| Client Logs
+| Logs API
 |--------------------------------------------------------------------------
 */
 
@@ -93,6 +105,16 @@ app.post("/api/logs", (req, res) => {
     metadata = {},
   } = req.body || {};
 
+  const normalizedSeverity = String(severity).toLowerCase();
+
+  const allowedSeverities = [
+    "info",
+    "warn",
+    "warning",
+    "error",
+    "debug",
+  ];
+
   if (!message) {
     return res.status(400).json({
       success: false,
@@ -100,14 +122,26 @@ app.post("/api/logs", (req, res) => {
     });
   }
 
-  console.log("[CLIENT LOG]", {
+  if (!allowedSeverities.includes(normalizedSeverity)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid severity",
+    });
+  }
+
+  const logEntry = {
     timestamp: new Date().toISOString(),
-    severity,
+    severity: normalizedSeverity,
     message,
     metadata,
-  });
+  };
 
-  return res.status(200).json({ success: true });
+  console.log("[CLIENT LOG]", logEntry);
+
+  return res.status(200).json({
+    success: true,
+    message: "Log received",
+  });
 });
 
 /*
@@ -126,7 +160,7 @@ app.get("/api/health", (req, res) => {
 
 /*
 |--------------------------------------------------------------------------
-| 404
+| 404 Handler
 |--------------------------------------------------------------------------
 */
 
@@ -139,7 +173,7 @@ app.use((req, res) => {
 
 /*
 |--------------------------------------------------------------------------
-| Error Handler
+| Global Error Handler
 |--------------------------------------------------------------------------
 */
 
@@ -154,131 +188,59 @@ app.use((err, req, res, next) => {
 
 /*
 |--------------------------------------------------------------------------
-| HTTP + SOCKET.IO SERVER
+| HTTP + Socket.IO Server
 |--------------------------------------------------------------------------
 */
 
 const server = http.createServer(app);
 
-const allowedOrigins = [
-  "http://localhost:3000",
-  "http://localhost:3001",
-];
-
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
+    origin: "http://localhost:3000",
     methods: ["GET", "POST"],
-    credentials: true,
   },
 });
 
+// Make io globally available for controllers
 global.io = io;
 
-/*
-|--------------------------------------------------------------------------
-| Socket.IO Signalling
-|--------------------------------------------------------------------------
-*/
-
 io.on("connection", (socket) => {
-  console.log("Socket connected:", socket.id);
+  console.log("User Connected:", socket.id);
 
-  // Both student and counsellor must join the same room ID.
-  socket.on("join-room", (roomId) => {
-    if (typeof roomId !== "string" || !roomId.trim()) {
-      console.log("Invalid room ID from:", socket.id);
-      return;
-    }
-
-    socket.join(roomId);
-
-    console.log(
-      `Socket ${socket.id} joined room ${roomId}`
-    );
-
-    console.log(
-      `Sockets currently in room ${roomId}:`,
-      io.sockets.adapter.rooms.get(roomId)?.size || 0
-    );
-  });
-
-  // WebRTC offer: send to the other participant in the room.
-  socket.on("offer", (data) => {
-    if (!data?.roomId || !data?.offer) {
-      console.log("Invalid offer received from:", socket.id);
-      return;
-    }
-
-    console.log(
-      `Sending WebRTC offer to room ${data.roomId}`
-    );
-
-    socket.to(data.roomId).emit("offer", data.offer);
-  });
-
-  // WebRTC answer: send to the other participant in the room.
-  socket.on("answer", (data) => {
-    if (!data?.roomId || !data?.answer) {
-      console.log("Invalid answer received from:", socket.id);
-      return;
-    }
-
-    console.log(
-      `Sending WebRTC answer to room ${data.roomId}`
-    );
-
-    socket.to(data.roomId).emit("answer", data.answer);
-  });
-
-  // ICE candidates are exchanged between participants.
-  socket.on("ice-candidate", (data) => {
-    if (!data?.roomId || !data?.candidate) {
-      return;
-    }
-
-    socket.to(data.roomId).emit(
-      "ice-candidate",
-      data.candidate
-    );
-  });
-
-  // End the call for everyone in the room.
-  socket.on("endCall", (data) => {
-    if (!data?.roomId) {
-      return;
-    }
-
-    console.log(`Call ended in room ${data.roomId}`);
-
-    io.to(data.roomId).emit("callEnded");
-  });
-
-  // Legacy room support.
   socket.on("joinRoom", (roomId) => {
-    if (typeof roomId === "string" && roomId.trim()) {
-      socket.join(roomId);
+    socket.join(roomId);
+  });
+
+  socket.on("joinAdminRoom", (token, acknowledge) => {
+    const respond = (payload) => {
+      if (typeof acknowledge === "function") acknowledge(payload);
+    };
+
+    try {
+      const user = jwt.verify(token, SECRET);
+      const role = String(user.role || "").toLowerCase();
+
+      if (role !== "admin" && role !== "supervisor") {
+        respond({ success: false, error: "Admin access required." });
+        return;
+      }
+
+      socket.join("admin-room");
+      respond({ success: true });
+    } catch (error) {
+      console.error("Admin socket authorization failed:", error.message);
+      respond({ success: false, error: "Invalid or expired token." });
     }
   });
 
-  // Legacy emergency notification support.
-  socket.on("emergency-call", (data) => {
-    io.emit("emergency-call", data);
-  });
-
-  // Legacy incoming-call support.
   socket.on("callUser", (data) => {
-    if (!data?.roomId) return;
-
     socket.to(data.roomId).emit("incomingCall", {
       caller: data.caller,
     });
   });
 
-  socket.on("disconnect", (reason) => {
-    console.log(
-      `Socket disconnected: ${socket.id}. Reason: ${reason}`
-    );
+  socket.on("endCall", (data) => {
+    socket.to(data.roomId).emit("callEnded");
   });
 });
 
@@ -291,20 +253,48 @@ io.on("connection", (socket) => {
 async function start() {
   try {
     await testConnection();
-
     console.log("Connected to MySQL.");
-
-    server.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-    });
   } catch (err) {
     console.error(
       "FATAL: could not connect to MySQL:",
       err.message
     );
-
+    console.error(
+      "Is the database container running? Try: docker compose up -d"
+    );
     process.exit(1);
   }
+
+  // Process pending emergency notifications on server startup
+  try {
+    console.log("[NOTIFICATIONS] Processing pending notifications...");
+
+    await processPendingNotifications();
+
+    console.log("[NOTIFICATIONS] Initial processing completed.");
+  } catch (err) {
+    console.error(
+      "[NOTIFICATIONS] Initial processing failed:",
+      err.message
+    );
+  }
+
+  // Retry pending notifications every 15 seconds
+  setInterval(async () => {
+    try {
+      await processPendingNotifications();
+    } catch (err) {
+      console.error(
+        "[NOTIFICATIONS] Scheduled processing failed:",
+        err.message
+      );
+    }
+  }, 15000);
+
+  server.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log("[NOTIFICATIONS] Retry worker running every 15 seconds.");
+  });
 }
 
 /*
