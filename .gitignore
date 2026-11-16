@@ -18,3 +18,5 @@ backend/node_modules/
 backend/.env
 
 backend/src/config/google/client_secret.json
+
+uploads/

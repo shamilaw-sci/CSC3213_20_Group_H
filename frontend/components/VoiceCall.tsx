@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import socket from "@/services/socket";
+import { API_BASE_URL } from "@/services/api";
 
 export default function VoiceCall() {
   const searchParams = useSearchParams();
@@ -294,7 +295,7 @@ export default function VoiceCall() {
         const token = localStorage.getItem("token");
 
         const response = await fetch(
-          `http://localhost:6001/api/emergency/${emergencyId}/complete`,
+          `${API_BASE_URL}/api/emergency/${emergencyId}/complete`,
           {
             method: "PUT",
             headers: {

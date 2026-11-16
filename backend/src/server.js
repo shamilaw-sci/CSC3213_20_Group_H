@@ -4,7 +4,7 @@ import { Server } from "socket.io";
 import pool, { testConnection } from "./config/db.js";
 import { runMigrations } from "./db/migrate.js";
 import jwt from "jsonwebtoken";
-import { SECRET } from "./config.js";
+import { SECRET, ALLOWED_ORIGINS } from "./config.js";
 import { escalateUnacknowledgedAlerts } from "./services/escalationService.js";
 import { processPendingNotifications } from "./services/notificationWorker.js";
 

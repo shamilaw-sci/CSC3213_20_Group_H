@@ -3,8 +3,8 @@ import { io, Socket } from "socket.io-client";
 import { API_BASE_URL } from "./api";
 
 const socket: Socket = io(API_BASE_URL, {
-    transports: ["websocket", "polling"],
-    autoConnect: true,
+    transports: ["polling", "websocket"],
+    autoConnect: typeof window !== "undefined",
     reconnection: true,
     reconnectionAttempts: 5,
     reconnectionDelay: 1000,
@@ -37,7 +37,7 @@ socket.on("disconnect", (reason) => {
 });
 
 socket.on("connect_error", (error) => {
-    console.error("Socket connection error:", error.message);
+    console.warn("Socket connection error:", error.message);
 });
 
 // --------------------------------------------------

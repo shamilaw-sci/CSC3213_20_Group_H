@@ -3,15 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-} from "recharts";
-import {
   ArrowLeft,
   CheckCircle,
   Download,
@@ -261,14 +252,6 @@ export default function ClinicalPatientDetail({
     );
   }
 
-  const phq9ChartData = (data.phq9Screenings || [])
-    .filter((s: any) => s.status === "completed")
-    .map((s: any) => ({
-      date: new Date(s.completedAt || s.createdAt).toLocaleDateString(),
-      score: s.totalScore,
-      severity: s.severityBand,
-    }));
-
   const currentUserRole =
     typeof window !== "undefined"
       ? String(localStorage.getItem("role") || "").toLowerCase()
@@ -321,7 +304,7 @@ export default function ClinicalPatientDetail({
         )}
       </div>
 
-      {/* Progress Monitoring Chart (PHQ-9 over time) */}
+      {/* Progress Monitoring (PHQ-9 Screening History) */}
       <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6 space-y-3">
         <h2 className="text-lg font-bold text-gray-900">
           PHQ-9 Screening Progress Over Time
@@ -332,27 +315,42 @@ export default function ClinicalPatientDetail({
           deterioration without clinical interpretation.
         </p>
 
-        {phq9ChartData.length === 0 ? (
-          <p className="text-sm text-gray-400 py-6">
-            No completed PHQ-9 screenings recorded for this patient yet.
+        {(data.phq9Screenings || []).length === 0 ? (
+          <p className="text-sm text-gray-400 py-4">
+            No PHQ-9 screenings recorded for this patient yet.
           </p>
         ) : (
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={phq9ChartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                <YAxis domain={[0, 27]} tick={{ fontSize: 12 }} />
-                <Tooltip />
-                <Line
-                  type="monotone"
-                  dataKey="score"
-                  stroke="#4f46e5"
-                  strokeWidth={3}
-                  dot={{ r: 5 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+          <div className="space-y-2.5">
+            {(data.phq9Screenings || []).map((s: any) => {
+              const score = typeof s.totalScore === "number" ? s.totalScore : 0;
+              const pct = Math.min(100, Math.round((score / 27) * 100));
+              return (
+                <div
+                  key={s.id}
+                  className="rounded-xl border border-gray-200 p-3 text-xs space-y-1.5"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-bold text-gray-900">
+                      {s.status === "completed"
+                        ? `${s.totalScore}/27 (${s.severityBand})`
+                        : `In Progress (${s.status})`}
+                      {s.q9SafetyTriggered ? " • Q9 Safety Flagged" : ""}
+                    </span>
+                    <span className="text-gray-500">
+                      {new Date(s.completedAt || s.createdAt).toLocaleString()}
+                    </span>
+                  </div>
+                  {s.status === "completed" && (
+                    <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                      <div
+                        className="bg-indigo-600 h-2 rounded-full"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

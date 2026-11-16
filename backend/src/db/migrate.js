@@ -45,6 +45,51 @@ async function addColumnIfMissing(tableName, columnName, definitionSql) {
 
 export async function runMigrations() {
   await addColumnIfMissing("users", "phone", "phone VARCHAR(32) NULL AFTER password");
+  await addColumnIfMissing("users", "anonymousId", "anonymousId VARCHAR(100) NULL");
+  await addColumnIfMissing("users", "isAnonymous", "isAnonymous BOOLEAN NOT NULL DEFAULT FALSE");
+  await addColumnIfMissing("users", "is_suspended", "is_suspended BOOLEAN NOT NULL DEFAULT FALSE");
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS counsellor_profiles (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
+      verification_status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+      document_url VARCHAR(255),
+      is_available BOOLEAN DEFAULT TRUE,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB
+  `);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS system_reports (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      generated_by INT,
+      report_type ENUM('PDF', 'CSV'),
+      title VARCHAR(150),
+      file_path VARCHAR(255),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB
+  `);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS counsellors (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT UNIQUE,
+      name VARCHAR(255) NOT NULL,
+      specialization VARCHAR(255) NOT NULL DEFAULT 'General Counselling',
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+    ) ENGINE=InnoDB
+  `);
+
+  await addColumnIfMissing("counsellors", "user_id", "user_id INT NULL UNIQUE AFTER id");
+  if (!(await constraintExists("counsellors", "fk_counsellors_user"))) {
+    await db.query(`
+      ALTER TABLE counsellors
+      ADD CONSTRAINT fk_counsellors_user
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+    `);
+  }
 
   await db.query(`
     CREATE TABLE IF NOT EXISTS conversations (

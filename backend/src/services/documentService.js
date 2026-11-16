@@ -169,7 +169,7 @@ export async function generateDocumentSummary({ documentId, actorId, actorRole, 
     filename: doc.original_filename,
   });
 
-  const modelUsed = process.env.GEMINI_MODEL || "gemini-flash-latest";
+  const modelUsed = summaryJson._modelUsed || process.env.GEMINI_MODEL || "gemini-flash-latest";
 
   const [result] = await db.query(
     `INSERT INTO document_summaries (document_id, patient_id, summary_json, model_used, review_status)

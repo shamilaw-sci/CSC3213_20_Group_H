@@ -6,7 +6,17 @@ import {
   getConfiguredCrisisResources,
   validateAiScreeningOutput,
 } from "../riskEngine.js";
-import { parseGeminiJsonSafe } from "../geminiService.js";
+import {
+  callGeminiGenerateContentWithMeta,
+  GeminiUnavailableError,
+  getCandidateGeminiModels,
+  parseGeminiJsonSafe,
+  SUPPORT_SYSTEM_PROMPT,
+} from "../geminiService.js";
+import {
+  buildLiveVoiceSystemInstruction,
+  LIVE_VOICE_SYSTEM_INSTRUCTION,
+} from "../liveVoiceService.js";
 
 describe("detectCrisis (English, Sinhala, Singlish & Safety Uncertainty)", () => {
   test("detects direct English self-harm disclosures", () => {
@@ -214,5 +224,98 @@ describe("Structured AI JSON parsing & validation", () => {
     assert.equal(validated.valid, true);
     assert.equal(validated.emotionalIndicators.length, 1);
     assert.equal(validated.depressionIndicators.length, 1);
+  });
+});
+
+describe("Counselling-Only Scope Guardrails (Chat & Voice Prompts)", () => {
+  test("chat system prompt strictly forbids answering off-topic general trivia", () => {
+    assert.match(SUPPORT_SYSTEM_PROMPT, /Counselling & Wellbeing ONLY/i);
+    assert.match(SUPPORT_SYSTEM_PROMPT, /REFUSE to answer/i);
+    assert.match(SUPPORT_SYSTEM_PROMPT, /NEVER answer an off-topic question/i);
+  });
+
+  test("live voice instruction enforces counselling-only scope and appends recent context", () => {
+    assert.match(LIVE_VOICE_SYSTEM_INSTRUCTION, /Counselling & Wellbeing ONLY/i);
+    assert.match(LIVE_VOICE_SYSTEM_INSTRUCTION, /NEVER provide the factual answer/i);
+
+    const base = buildLiveVoiceSystemInstruction([]);
+    assert.equal(base, LIVE_VOICE_SYSTEM_INSTRUCTION);
+
+    const withHistory = buildLiveVoiceSystemInstruction([
+      { sender: "patient", content: "I feel anxious about my exams" },
+      { sender: "bot", content: "I hear how stressful exams feel right now." },
+    ]);
+    assert.match(withHistory, /Recent conversation context/);
+    assert.match(withHistory, /Student: I feel anxious about my exams/);
+    assert.match(withHistory, /Assistant: I hear how stressful exams feel right now\./);
+  });
+});
+
+describe("Gemini 503 Model Fallback", () => {
+  test("deduplicates candidate models while preserving primary model first", () => {
+    const models = getCandidateGeminiModels(
+      "gemini-flash-lite-latest",
+      "gemini-flash-lite-latest, gemini-3.5-flash"
+    );
+    assert.deepEqual(models, ["gemini-flash-lite-latest", "gemini-3.5-flash"]);
+  });
+
+  test("falls back to secondary model when primary returns 503", async () => {
+    const prevKey = process.env.GEMINI_API_KEY;
+    process.env.GEMINI_API_KEY = "test-key";
+    const calledUrls = [];
+
+    const mockFetch = async (url) => {
+      calledUrls.push(url);
+      if (calledUrls.length === 1) {
+        return { ok: false, status: 503, text: async () => "UNAVAILABLE" };
+      }
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          candidates: [{ content: { parts: [{ text: "Fallback succeeded" }] } }],
+        }),
+      };
+    };
+
+    try {
+      const result = await callGeminiGenerateContentWithMeta({
+        systemPrompt: "sys",
+        contents: [{ role: "user", parts: [{ text: "hi" }] }],
+        fetchFn: mockFetch,
+      });
+      assert.equal(calledUrls.length, 2);
+      assert.equal(result.text, "Fallback succeeded");
+      assert.equal(result.modelUsed, "gemini-flash-lite-latest");
+    } finally {
+      if (prevKey === undefined) delete process.env.GEMINI_API_KEY;
+      else process.env.GEMINI_API_KEY = prevKey;
+    }
+  });
+
+  test("throws GeminiUnavailableError when all candidate models return 503", async () => {
+    const prevKey = process.env.GEMINI_API_KEY;
+    process.env.GEMINI_API_KEY = "test-key";
+    const mockFetch = async () => ({
+      ok: false,
+      status: 503,
+      text: async () => "UNAVAILABLE",
+    });
+
+    try {
+      await assert.rejects(
+        () =>
+          callGeminiGenerateContentWithMeta({
+            systemPrompt: "sys",
+            contents: [{ role: "user", parts: [{ text: "hi" }] }],
+            fetchFn: mockFetch,
+          }),
+        GeminiUnavailableError
+      );
+    } finally {
+      if (prevKey === undefined) delete process.env.GEMINI_API_KEY;
+      else process.env.GEMINI_API_KEY = prevKey;
+    }
   });
 });

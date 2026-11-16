@@ -10,6 +10,7 @@ import {
   generateDocumentSummary,
   storePatientDocument,
 } from "../services/documentService.js";
+import { GeminiUnavailableError } from "../services/geminiService.js";
 import { createNotification } from "../services/notificationService.js";
 import { VALID_RISK_LEVELS } from "../services/riskEngine.js";
 import { recordAuditLog } from "../utils/auditLogger.js";
@@ -797,6 +798,11 @@ export const summarizeDocument = async (req, res) => {
   } catch (error) {
     if (error instanceof DocumentValidationError) {
       return res.status(400).json({ error: error.message });
+    }
+    if (error instanceof GeminiUnavailableError) {
+      return res.status(503).json({
+        error: "AI summarization service is temporarily busy. Please try again in a few moments.",
+      });
     }
     console.error("Failed to summarize document:", error);
     return res.status(500).json({ error: "Could not generate AI document summary." });

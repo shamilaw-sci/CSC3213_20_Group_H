@@ -12,6 +12,7 @@ import {
 import { API_BASE_URL } from "@/services/api";
 import socket, { joinAdminRoom } from "@/services/socket";
 import AuthGuard from "@/components/AuthGuard";
+import RiskOverviewPanel from "@/components/RiskOverviewPanel";
 import {
   Users,
   UserCheck,
@@ -507,6 +508,9 @@ export default function AdminDashboardPage() {
           </table>
         </div>
       </div>
+
+      {/* Mental Health Screening, Operational Risk Overview, Alerts & Counsellor Assignments */}
+      <RiskOverviewPanel isAdmin={true} />
 
       {/* Severity Trends Chart (WBS 7.3) */}
       <div className="p-6 bg-white border border-gray-100 rounded-2xl shadow-sm">
