@@ -1,9 +1,8 @@
 import { describe, it, beforeEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
-import jwt from 'jsonwebtoken';
 import db from '../config/db.js';
 import * as emergencyController from './emergencyController.js';
-import authMiddleware from '../auth/authMiddleware.js';
+import { authMiddleware } from '../auth/authMiddleware.js';
 
 describe('Module 6: Emergency Support Verification', () => {
   let emittedEvents = [];
@@ -83,11 +82,9 @@ describe('Module 6: Emergency Support Verification', () => {
     const handler = emergencyController.triggerEmergency || emergencyController.default?.triggerEmergency;
     await handler(req, res);
 
-    // Verify immediate HTTP 201 response
     assert.equal(resStatus, 201);
     assert.equal(resData.emergencyId, 501);
 
-    // Verify outbox row was inserted into emergency_notifications
     const outboxInsert = executedQueries.find((q) => q.sql.includes('INSERT INTO emergency_notifications'));
     assert.ok(outboxInsert, 'Expected emergency_notifications outbox insert before HTTP 201');
 

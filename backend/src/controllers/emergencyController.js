@@ -183,7 +183,7 @@ export const triggerEmergency = async (req, res) => {
 
                 // 3. Broadcast the normal emergency alert to counsellors
                 if (global.io) {
-                    global.io.to('counsellors-room').emit('emergencyAlert', {
+                    const alert = {
                         emergencyId,
                         studentId,
                         severityScore,
@@ -194,7 +194,13 @@ export const triggerEmergency = async (req, res) => {
                         targetedCounsellors: availableCounsellors.map(
                             counsellor => counsellor.id
                         )
-                    });
+                    };
+
+                    for (const counsellor of availableCounsellors) {
+                        global.io
+                            .to(`counsellor-${counsellor.id}`)
+                            .emit('emergencyAlert', alert);
+                    }
                 }
 
             } catch (bgError) {

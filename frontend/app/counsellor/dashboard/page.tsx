@@ -32,8 +32,8 @@ export default function CounsellorDashboard() {
 
     setIsAuthorized(true);
 
-    // Join the Counsellors Room for real-time emergency broadcasts
-    socket.emit("joinRoom", "counsellors-room");
+    // Join this counsellor's room for real-time emergency broadcasts
+    socket.emit("joinRoom", `counsellor-${user.id}`);
 
     const handleEmergencyAlert = (alertData: EmergencyAlert) => {
       console.warn(
@@ -95,8 +95,7 @@ export default function CounsellorDashboard() {
       </div>
 
       <p style={{ color: "#555" }}>
-        Listening for real-time emergency signals on room:{" "}
-        <strong>counsellors-room</strong>
+        Listening for real-time emergency signals on your counsellor room.
       </p>
 
       <hr style={{ margin: "20px 0" }} />

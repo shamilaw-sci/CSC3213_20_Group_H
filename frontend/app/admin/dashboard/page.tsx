@@ -83,7 +83,11 @@ export default function AdminDashboardPage() {
         `${API_BASE_URL}/api/admin/counsellors/${counsellorId}/verify`,
         {
           method: "PUT",
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ verification_status: "approved" }),
         },
       );
       if (!res.ok) throw new Error("Failed to update counsellor status");
@@ -91,6 +95,31 @@ export default function AdminDashboardPage() {
       window.location.reload(); // Refresh data
     } catch (err) {
       alert("Could not complete verification.");
+    }
+  };
+
+  const handleToggleSuspension = async (student: any) => {
+    const token = localStorage.getItem("token");
+    const isSuspended =
+      student.is_suspended === true || student.status === "Suspended";
+
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/admin/users/${student.id}/suspend`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ is_suspended: !isSuspended }),
+        },
+      );
+
+      if (!res.ok) throw new Error("Failed to update user suspension");
+      window.location.reload();
+    } catch (err) {
+      alert("Could not update user suspension.");
     }
   };
 
@@ -298,6 +327,7 @@ export default function AdminDashboardPage() {
                 <th className="pb-3 px-4">Email Address</th>
                 <th className="pb-3 px-4">Account Type</th>
                 <th className="pb-3 px-4">Status</th>
+                <th className="pb-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50 text-sm">
@@ -322,10 +352,36 @@ export default function AdminDashboardPage() {
                     )}
                   </td>
                   <td className="py-4 px-4 font-semibold">
+                    {(() => {
+                      const isSuspended =
+                        student.is_suspended === true ||
+                        student.status === "Suspended";
+
+                      return (
+                        <>
                     <span
-                      className={`inline-block w-2 h-2 rounded-full mr-2 ${student.status === "Suspended" ? "bg-rose-500" : "bg-emerald-500"}`}
+                      className={`inline-block w-2 h-2 rounded-full mr-2 ${isSuspended ? "bg-rose-500" : "bg-emerald-500"}`}
                     ></span>
-                    {student.status || "Active"}
+                          {isSuspended ? "Suspended" : "Active"}
+                        </>
+                      );
+                    })()}
+                  </td>
+                  <td className="py-4 px-4 text-right">
+                    <button
+                      onClick={() => handleToggleSuspension(student)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                        student.is_suspended === true ||
+                        student.status === "Suspended"
+                          ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                          : "bg-rose-600 hover:bg-rose-700 text-white"
+                      }`}
+                    >
+                      {student.is_suspended === true ||
+                      student.status === "Suspended"
+                        ? "Reactivate"
+                        : "Suspend"}
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -369,6 +425,7 @@ export default function AdminDashboardPage() {
                   </td>
                   <td className="py-4 px-4">
                     {counsellor.verification_status === "verified" ||
+                    counsellor.verification_status === "approved" ||
                     counsellor.verification_status === "Active" ? (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                         <CheckCircle size={12} /> Verified
@@ -380,7 +437,9 @@ export default function AdminDashboardPage() {
                     )}
                   </td>
                   <td className="py-4 px-4 text-right space-x-2">
-                    {counsellor.verification_status !== "verified" && (
+                    {!["verified", "approved", "Active"].includes(
+                      counsellor.verification_status,
+                    ) && (
                       <button
                         onClick={() => handleVerifyCounsellor(counsellor.id)}
                         className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-all"
