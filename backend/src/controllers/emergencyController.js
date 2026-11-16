@@ -125,7 +125,7 @@ export const triggerEmergency = async (req, res) => {
                 u.id,
                 u.name,
                 u.email,
-                u.phone,
+                NULL AS phone,
                 cp.is_available
             FROM users u
             JOIN counsellor_profiles cp
@@ -152,7 +152,7 @@ export const triggerEmergency = async (req, res) => {
                     id,
                     name,
                     email,
-                    phone
+                    NULL AS phone
                 FROM users
                 WHERE role IN ('admin', 'supervisor')
                 AND is_suspended = FALSE

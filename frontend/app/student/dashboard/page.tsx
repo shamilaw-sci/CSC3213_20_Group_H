@@ -1,14 +1,14 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 import AuthGuard from "@/components/AuthGuard";
 import WelcomeBanner from "@/components/student/WelcomeBanner";
 
-export default function StudentDashboard() {
+function StudentDashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isAnonymous, setIsAnonymous] = useState(false);
@@ -199,5 +199,13 @@ export default function StudentDashboard() {
         </div>
       </main>
     </AuthGuard>
+  );
+}
+
+export default function StudentDashboard() {
+  return (
+    <Suspense fallback={<p>Loading dashboard...</p>}>
+      <StudentDashboardContent />
+    </Suspense>
   );
 }
