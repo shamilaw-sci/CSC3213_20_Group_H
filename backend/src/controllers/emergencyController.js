@@ -9,6 +9,15 @@ export const triggerEmergency = async (req, res) => {
     try {
         const studentId = req.user?.id;
         const studentName = req.user?.name;
+    // 1. Verify authentication
+    if (!req.user || !req.user.id) {
+        return res.status(401).json({
+            error: 'Authentication required to trigger an emergency alert.'
+        });
+    }
+
+    const studentId = req.user.id;
+    const { description, aiConfidence } = req.body ?? {};
 
         if (!studentId) {
             return res.status(401).json({
@@ -69,6 +78,40 @@ export const triggerEmergency = async (req, res) => {
             success: true,
             message: "Emergency request created successfully.",
             request: emergencyRequest
+        });
+
+        // 5. Run notifications asynchronously in the background
+        setImmediate(async () => {
+            try {
+                // Broadcast real-time alert to counsellors
+                if (global.io) {
+                    global.io.to('counsellors-room').emit('emergencyAlert', {
+                        emergencyId,
+                        studentId,
+                        severityScore,
+                        fallbackTriggered,
+                        description: normalizedDescription,
+                        timestamp: new Date().toISOString()
+                    });
+                }
+
+                // Trigger redundant notifications
+                await dispatchRedundantNotifications({
+                    emergencyId,
+                    studentId,
+                    severityScore,
+                    fallbackTriggered,
+                    matchedKeywords,
+                    description: normalizedDescription ||
+                        'Immediate crisis assistance requested'
+                });
+
+            } catch (bgError) {
+                console.error(
+                    'Background emergency notification error:',
+                    bgError
+                );
+            }
         });
 
     } catch (error) {

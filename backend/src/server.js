@@ -3,10 +3,12 @@ import http from "http";
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import jwt from "jsonwebtoken";
 import { Server } from "socket.io";
 import rateLimit from "express-rate-limit";
 
 import passport from "./config/passport.js";
+import { SECRET } from "./config.js";
 import pool, { testConnection } from "./config/db.js";
 
 import authRoutes from "./routes/authRoutes.js";
