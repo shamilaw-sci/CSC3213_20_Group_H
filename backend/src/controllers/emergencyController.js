@@ -426,3 +426,134 @@ function getConfiguredRecipients(environmentVariable) {
         .map(recipient => recipient.trim())
         .filter(Boolean);
 }
+
+// =====================================================
+// 5. COUNSELLOR EMERGENCY REQUEST MANAGEMENT
+// =====================================================
+
+export const getEmergencyRequests = async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT
+                e.id,
+                e.student_id,
+                u.name AS student_name,
+                u.email AS student_email,
+                CONCAT('emergency-', e.id) AS room_id,
+                CASE e.status
+                    WHEN 'Pending_Acknowledgment' THEN 'Pending'
+                    ELSE e.status
+                END AS status,
+                e.created_at
+            FROM emergencies e
+            JOIN users u ON u.id = e.student_id
+            ORDER BY e.created_at DESC
+        `);
+
+        return res.json(rows);
+    } catch (error) {
+        console.error('Get emergency requests error:', error);
+        return res.status(500).json({ message: error.message });
+    }
+};
+
+export const acceptEmergencyRequest = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const [rows] = await db.query(
+            `SELECT e.id, e.student_id, u.name AS student_name,
+                    u.email AS student_email, e.status
+             FROM emergencies e
+             JOIN users u ON u.id = e.student_id
+             WHERE e.id = ?`,
+            [id]
+        );
+
+        if (rows.length === 0) {
+            return res.status(404).json({ message: 'Emergency request not found.' });
+        }
+
+        const request = rows[0];
+        if (request.status !== 'Pending_Acknowledgment') {
+            return res.status(409).json({
+                message: `This request is already ${request.status}.`
+            });
+        }
+
+        const [result] = await db.query(
+            `UPDATE emergencies
+             SET status = 'Accepted'
+             WHERE id = ? AND status = 'Pending_Acknowledgment'`,
+            [id]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(409).json({
+                message: 'This request has already been accepted or updated.'
+            });
+        }
+
+        const roomId = `emergency-${id}`;
+        if (global.io) {
+            global.io.emit('emergency-call', {
+                requestId: Number(id),
+                studentId: request.student_id,
+                studentName: request.student_name,
+                studentEmail: request.student_email,
+                roomId
+            });
+        }
+
+        return res.json({
+            success: true,
+            roomId,
+            requestId: Number(id),
+            message: 'Emergency request accepted.'
+        });
+    } catch (error) {
+        console.error('Accept emergency request error:', error);
+        return res.status(500).json({ message: error.message });
+    }
+};
+
+export const completeEmergencyRequest = async (req, res) => {
+    try {
+        const [result] = await db.query(
+            `UPDATE emergencies
+             SET status = 'Completed'
+             WHERE id = ? AND status = 'Accepted'`,
+            [req.params.id]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({
+                message: 'Accepted emergency request not found.'
+            });
+        }
+
+        return res.json({ success: true, message: 'Emergency request completed.' });
+    } catch (error) {
+        console.error('Complete emergency request error:', error);
+        return res.status(500).json({ message: error.message });
+    }
+};
+
+export const cancelEmergencyRequest = async (req, res) => {
+    try {
+        const [result] = await db.query(
+            `UPDATE emergencies
+             SET status = 'Cancelled'
+             WHERE id = ? AND status IN ('Pending_Acknowledgment', 'Accepted')`,
+            [req.params.id]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Active emergency request not found.' });
+        }
+
+        return res.json({ success: true, message: 'Emergency request cancelled.' });
+    } catch (error) {
+        console.error('Cancel emergency request error:', error);
+        return res.status(500).json({ message: error.message });
+    }
+};

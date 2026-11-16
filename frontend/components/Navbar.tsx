@@ -158,7 +158,7 @@ export default function Navbar() {
               </Link>
             )}
 
-            {userRole === "counsellor" && (
+            {userRole === "counsellor" && (        //what see only to counsellor
               <>
                 <Link href="/counsellor/dashboard" className={navLinkClass}>
                   <LayoutDashboard size={16} />
