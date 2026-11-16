@@ -8,9 +8,11 @@ export const ensureBookingTables = () => {
       await db.query(`
         CREATE TABLE IF NOT EXISTS counsellors (
           id INT AUTO_INCREMENT PRIMARY KEY,
+          user_id INT UNIQUE,
           name VARCHAR(255) NOT NULL,
           specialization VARCHAR(255) NOT NULL,
-          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
         )
       `);
 

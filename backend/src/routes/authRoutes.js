@@ -54,7 +54,7 @@ router.get(
 
       // Check if Google user already exists
       const [existingUsers] = await db.query(
-          'SELECT id, name, role FROM users WHERE email = ?',
+        'SELECT id, name, role, is_suspended FROM users WHERE email = ?',
           [email]
       );
 
@@ -63,6 +63,11 @@ router.get(
       let role = "Student";
 
       if (existingUsers.length > 0) {
+        if (existingUsers[0].is_suspended) {
+          return res.status(403).json({
+            message: "This account has been suspended."
+          });
+        }
 
         userId = existingUsers[0].id;
         userName = existingUsers[0].name;

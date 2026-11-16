@@ -39,7 +39,8 @@ export const getAnalyticsDashboard = async (req, res) => {
              ORDER BY created_at DESC`
         );
         const [counsellors] = await db.query(
-            `SELECT c.id, c.user_id, c.name, u.email, c.specialization AS department,
+            `SELECT c.id, c.user_id, c.name, u.email, cp.document_url,
+                    c.specialization AS department,
                     COALESCE(cp.verification_status, 'pending') AS verification_status
              FROM counsellors c
              LEFT JOIN users u ON u.id = c.user_id
@@ -133,6 +134,12 @@ export const verifyCounsellor = async (req, res) => {
     const { counsellorId } = req.params;
     const { verification_status } = req.body; 
     const adminId = req.user?.id;
+
+    if (!['approved', 'rejected', 'pending'].includes(verification_status)) {
+        return res.status(400).json({
+            error: 'Invalid counsellor verification status.'
+        });
+    }
 
     try {
         await db.query(

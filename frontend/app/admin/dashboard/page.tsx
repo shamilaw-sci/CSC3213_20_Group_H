@@ -11,6 +11,7 @@ import {
 } from "recharts";
 import { API_BASE_URL } from "@/services/api";
 import socket, { joinAdminRoom } from "@/services/socket";
+import AuthGuard from "@/components/AuthGuard";
 import {
   Users,
   UserCheck,
@@ -29,6 +30,7 @@ export default function AdminDashboardPage() {
   const [studentFilter, setStudentFilter] = useState<
     "all" | "registered" | "anonymous"
   >("all");
+  const [studentSearch, setStudentSearch] = useState("");
 
   const [escalations, setEscalations] = useState<any[]>([]);
 
@@ -76,7 +78,10 @@ export default function AdminDashboardPage() {
     };
   }, []);
 
-  const handleVerifyCounsellor = async (counsellorId: number) => {
+  const handleVerifyCounsellor = async (
+    counsellorId: number,
+    verificationStatus: "approved" | "rejected",
+  ) => {
     const token = localStorage.getItem("token");
     try {
       const res = await fetch(
@@ -87,11 +92,15 @@ export default function AdminDashboardPage() {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ verification_status: "approved" }),
+          body: JSON.stringify({ verification_status: verificationStatus }),
         },
       );
       if (!res.ok) throw new Error("Failed to update counsellor status");
-      alert("Counsellor verified successfully!");
+      alert(
+        verificationStatus === "approved"
+          ? "Counsellor approved successfully!"
+          : "Counsellor rejected successfully!",
+      );
       window.location.reload(); // Refresh data
     } catch (err) {
       alert("Could not complete verification.");
@@ -200,13 +209,23 @@ export default function AdminDashboardPage() {
   ];
 
   const filteredStudents = studentsList.filter((student: any) => {
+    const searchTerm = studentSearch.trim().toLowerCase();
+    const matchesSearch =
+      !searchTerm ||
+      [student.name, student.email, student.id]
+        .join(" ")
+        .toLowerCase()
+        .includes(searchTerm);
+
+    if (!matchesSearch) return false;
     if (studentFilter === "registered") return student.type === "registered";
     if (studentFilter === "anonymous") return student.type === "anonymous";
     return true;
   });
 
   return (
-    <div className="p-8 md:p-12 space-y-8 bg-gray-50 text-gray-900 min-h-screen font-sans">
+    <AuthGuard allowedRoles={["admin", "supervisor"]}>
+      <div className="p-8 md:p-12 space-y-8 bg-gray-50 text-gray-900 min-h-screen font-sans">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
         <div>
@@ -318,6 +337,14 @@ export default function AdminDashboardPage() {
             </button>
           </div>
         </div>
+        <input
+          type="search"
+          value={studentSearch}
+          onChange={(event) => setStudentSearch(event.target.value)}
+          placeholder="Search by name, email, or user ID"
+          className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+          aria-label="Search users"
+        />
 
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -441,20 +468,38 @@ export default function AdminDashboardPage() {
                       counsellor.verification_status,
                     ) && (
                       <button
-                        onClick={() => handleVerifyCounsellor(counsellor.id)}
+                        onClick={() =>
+                          handleVerifyCounsellor(counsellor.user_id, "approved")
+                        }
                         className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-all"
                       >
-                        Verify License
+                        Approve
                       </button>
                     )}
-                    <button
-                      onClick={() =>
-                        alert(`Reviewing credentials for ${counsellor.name}`)
-                      }
-                      className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-bold transition-all"
-                    >
-                      View Credentials
-                    </button>
+                    {!["rejected"].includes(counsellor.verification_status) && (
+                      <button
+                        onClick={() =>
+                          handleVerifyCounsellor(counsellor.user_id, "rejected")
+                        }
+                        className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition-all"
+                      >
+                        Reject
+                      </button>
+                    )}
+                    {counsellor.document_url ? (
+                      <a
+                        href={counsellor.document_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-block px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-bold transition-all"
+                      >
+                        View Credentials
+                      </a>
+                    ) : (
+                      <span className="inline-block px-3 py-1.5 text-xs text-gray-400">
+                        No credentials
+                      </span>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -497,6 +542,7 @@ export default function AdminDashboardPage() {
           </ResponsiveContainer>
         </div>
       </div>
-    </div>
+      </div>
+    </AuthGuard>
   );
 }
