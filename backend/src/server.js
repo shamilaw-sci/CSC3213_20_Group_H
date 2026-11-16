@@ -4,7 +4,7 @@ import { Server } from "socket.io";
 import pool, { testConnection } from "./config/db.js";
 import { runMigrations } from "./db/migrate.js";
 import jwt from "jsonwebtoken";
-import { SECRET } from "./config.js";
+import { SECRET, ALLOWED_ORIGINS } from "./config.js";
 import { escalateUnacknowledgedAlerts } from "./services/escalationService.js";
 
 const PORT = process.env.PORT || 5050;
@@ -13,7 +13,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: ALLOWED_ORIGINS,
     methods: ["GET", "POST"],
   },
 });

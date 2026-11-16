@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import session from "express-session";
 
 import passport from "./config/passport.js";
+import { ALLOWED_ORIGINS } from "./config.js";
 
 import authRoutes from "./routes/authRoutes.js";
 import emergencyRoutes from "./routes/emergencyRoutes.js";
@@ -23,7 +24,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: ALLOWED_ORIGINS,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,

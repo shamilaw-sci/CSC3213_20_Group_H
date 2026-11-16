@@ -3,6 +3,7 @@ import passport from 'passport';
 import jwt from 'jsonwebtoken';
 
 import db from '../config/db.js';
+import { SECRET } from '../config.js';
 import {
   login,
   register,
@@ -91,16 +92,19 @@ router.get(
         userId = result.insertId;
       }
 
+      const normalizedRole = String(role || 'student').toLowerCase();
+
       // Generate CareBridge JWT
       const token = jwt.sign(
         {
           id: userId,
+          userId,
           name: userName,
-          role
+          role: normalizedRole
         },
-        process.env.JWT_SECRET,
+        SECRET,
         {
-          expiresIn: "1h"
+          expiresIn: "24h"
         }
       );
 
@@ -108,7 +112,7 @@ router.get(
         process.env.FRONTEND_URL || "http://localhost:3000";
 
       res.redirect(
-        `${frontendUrl}/auth/google/callback?token=${encodeURIComponent(token)}&userId=${encodeURIComponent(userId)}&role=${encodeURIComponent(role)}`
+        `${frontendUrl}/auth/google/callback?token=${encodeURIComponent(token)}&userId=${encodeURIComponent(userId)}&role=${encodeURIComponent(normalizedRole)}`
       );
 
     } catch (error) {

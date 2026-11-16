@@ -304,6 +304,57 @@ export default function ClinicalPatientDetail({
         )}
       </div>
 
+      {/* Progress Monitoring (PHQ-9 Screening History) */}
+      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6 space-y-3">
+        <h2 className="text-lg font-bold text-gray-900">
+          PHQ-9 Screening Progress Over Time
+        </h2>
+        <p className="text-xs text-gray-500">
+          Note: PHQ-9 scores are structured screening indicators only. A change in
+          score must not be treated as standalone proof of recovery or
+          deterioration without clinical interpretation.
+        </p>
+
+        {(data.phq9Screenings || []).length === 0 ? (
+          <p className="text-sm text-gray-400 py-4">
+            No PHQ-9 screenings recorded for this patient yet.
+          </p>
+        ) : (
+          <div className="space-y-2.5">
+            {(data.phq9Screenings || []).map((s: any) => {
+              const score = typeof s.totalScore === "number" ? s.totalScore : 0;
+              const pct = Math.min(100, Math.round((score / 27) * 100));
+              return (
+                <div
+                  key={s.id}
+                  className="rounded-xl border border-gray-200 p-3 text-xs space-y-1.5"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-bold text-gray-900">
+                      {s.status === "completed"
+                        ? `${s.totalScore}/27 (${s.severityBand})`
+                        : `In Progress (${s.status})`}
+                      {s.q9SafetyTriggered ? " • Q9 Safety Flagged" : ""}
+                    </span>
+                    <span className="text-gray-500">
+                      {new Date(s.completedAt || s.createdAt).toLocaleString()}
+                    </span>
+                  </div>
+                  {s.status === "completed" && (
+                    <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                      <div
+                        className="bg-indigo-600 h-2 rounded-full"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       {/* Risk Assessments & Conversation History */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6 space-y-4">

@@ -142,10 +142,35 @@ export const verifyCounsellor = async (req, res) => {
     }
 
     try {
-        await db.query(
+        const [updateResult] = await db.query(
             `UPDATE counsellor_profiles SET verification_status = ? WHERE user_id = ?`,
             [verification_status, counsellorId]
         );
+
+        if (updateResult.affectedRows === 0) {
+            const [counsellorRows] = await db.query(
+                `SELECT id, user_id FROM counsellors WHERE id = ? OR user_id = ? LIMIT 1`,
+                [counsellorId, counsellorId]
+            );
+            const targetUserId = counsellorRows[0]?.user_id || Number(counsellorId);
+            if (targetUserId) {
+                const [existing] = await db.query(
+                    `SELECT id FROM counsellor_profiles WHERE user_id = ? LIMIT 1`,
+                    [targetUserId]
+                );
+                if (existing.length > 0) {
+                    await db.query(
+                        `UPDATE counsellor_profiles SET verification_status = ? WHERE user_id = ?`,
+                        [verification_status, targetUserId]
+                    );
+                } else {
+                    await db.query(
+                        `INSERT INTO counsellor_profiles (user_id, verification_status, is_available) VALUES (?, ?, TRUE)`,
+                        [targetUserId, verification_status]
+                    );
+                }
+            }
+        }
 
         global.io?.to('admin-room').emit('usersUpdated');
 
