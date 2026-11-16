@@ -3,15 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-} from "recharts";
-import {
   ArrowLeft,
   CheckCircle,
   Download,
@@ -261,14 +252,6 @@ export default function ClinicalPatientDetail({
     );
   }
 
-  const phq9ChartData = (data.phq9Screenings || [])
-    .filter((s: any) => s.status === "completed")
-    .map((s: any) => ({
-      date: new Date(s.completedAt || s.createdAt).toLocaleDateString(),
-      score: s.totalScore,
-      severity: s.severityBand,
-    }));
-
   const currentUserRole =
     typeof window !== "undefined"
       ? String(localStorage.getItem("role") || "").toLowerCase()
@@ -317,42 +300,6 @@ export default function ClinicalPatientDetail({
                 </option>
               ))}
             </select>
-          </div>
-        )}
-      </div>
-
-      {/* Progress Monitoring Chart (PHQ-9 over time) */}
-      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6 space-y-3">
-        <h2 className="text-lg font-bold text-gray-900">
-          PHQ-9 Screening Progress Over Time
-        </h2>
-        <p className="text-xs text-gray-500">
-          Note: PHQ-9 scores are structured screening indicators only. A change in
-          score must not be treated as standalone proof of recovery or
-          deterioration without clinical interpretation.
-        </p>
-
-        {phq9ChartData.length === 0 ? (
-          <p className="text-sm text-gray-400 py-6">
-            No completed PHQ-9 screenings recorded for this patient yet.
-          </p>
-        ) : (
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={phq9ChartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                <YAxis domain={[0, 27]} tick={{ fontSize: 12 }} />
-                <Tooltip />
-                <Line
-                  type="monotone"
-                  dataKey="score"
-                  stroke="#4f46e5"
-                  strokeWidth={3}
-                  dot={{ r: 5 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
           </div>
         )}
       </div>
