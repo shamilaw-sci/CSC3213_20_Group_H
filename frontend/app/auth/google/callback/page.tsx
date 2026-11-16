@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function GoogleCallback() {
+function GoogleCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -42,4 +42,12 @@ export default function GoogleCallback() {
   }, [router, searchParams]);
 
   return <p>Completing Google Login...</p>;
+}
+
+export default function GoogleCallback() {
+  return (
+    <Suspense fallback={<p>Completing Google Login...</p>}>
+      <GoogleCallbackContent />
+    </Suspense>
+  );
 }

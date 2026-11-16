@@ -6,6 +6,7 @@ import { runMigrations } from "./db/migrate.js";
 import jwt from "jsonwebtoken";
 import { SECRET, ALLOWED_ORIGINS } from "./config.js";
 import { escalateUnacknowledgedAlerts } from "./services/escalationService.js";
+import { processPendingNotifications } from "./services/notificationWorker.js";
 
 const PORT = process.env.PORT || 5050;
 
@@ -13,7 +14,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: ALLOWED_ORIGINS,
+    origin: ["http://localhost:3000", "http://localhost:3001"],
     methods: ["GET", "POST"],
   },
 });
@@ -141,6 +142,17 @@ async function start() {
 
     await runMigrations();
     console.log("Database schema verified.");
+
+    try {
+      console.log("[NOTIFICATIONS] Processing pending notifications...");
+      await processPendingNotifications();
+      console.log("[NOTIFICATIONS] Initial processing completed.");
+    } catch (error) {
+      console.error(
+        "[NOTIFICATIONS] Initial processing failed:",
+        error.message
+      );
+    }
   } catch (err) {
     console.error(
       "FATAL: could not connect to MySQL:",
@@ -159,6 +171,16 @@ async function start() {
       `Server running on port ${PORT}`
     );
   });
+
+  const notificationInterval = setInterval(() => {
+    processPendingNotifications().catch((error) =>
+      console.error(
+        "[NOTIFICATIONS] Scheduled processing failed:",
+        error.message
+      )
+    );
+  }, 15000);
+  notificationInterval.unref?.();
 
   // Periodic escalation check for unacknowledged high-risk alerts
   const escalationInterval = setInterval(() => {

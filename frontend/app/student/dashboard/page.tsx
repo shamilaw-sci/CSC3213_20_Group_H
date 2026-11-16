@@ -1,54 +1,39 @@
+
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 
 import AuthGuard from "@/components/AuthGuard";
-
-import StudentSidebar from "@/components/student/StudentSidebar";
 import WelcomeBanner from "@/components/student/WelcomeBanner";
-import DashboardStats from "@/components/student/DashboardStats";
-import RecentAssessment from "@/components/student/RecentAssessment";
-import UpcomingAppointment from "@/components/student/UpcomingAppointment";
-import RecommendedSection from "@/components/student/RecommendedSection";
-import QuickActions from "@/components/student/QuickActions";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-interface Assessment {
-  name?: string;
-  date?: string;
-  severity?: string;
-  description?: string;
-}
-
-interface Appointment {
-  professionalName?: string;
-  professionalType?: string;
-  date?: string;
-  time?: string;
-  mode?: string;
-}
-
-export default function StudentDashboard() {
+function StudentDashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-
-  const [assessment, setAssessment] =
-    useState<Assessment | null>(null);
-
-  const [appointment, setAppointment] =
-    useState<Appointment | null>(null);
-
-  const [loading, setLoading] = useState(true);
+  const [isAnonymous, setIsAnonymous] = useState(false);
 
   useEffect(() => {
-    const googleToken = searchParams.get("token");
+    const storedUser = localStorage.getItem("user");
+
+    if (storedUser) {
+      try {
+        const user = JSON.parse(storedUser);
+        setIsAnonymous(user.isAnonymous === true);
+      } catch {
+        setIsAnonymous(false);
+      }
+    }
+  }, []);
+
+  // Handle Google OAuth callback
+  useEffect(() => {
+    const token = searchParams.get("token");
     const userId = searchParams.get("userId");
     const role = searchParams.get("role");
 
-    if (googleToken) {
-      localStorage.setItem("token", googleToken);
+    if (token && userId) {
+      localStorage.setItem("token", token);
 
       localStorage.setItem(
         "user",
@@ -59,238 +44,168 @@ export default function StudentDashboard() {
       );
 
       router.replace("/student/dashboard");
-
-      return;
     }
-
-    const loadDashboard = async () => {
-      try {
-        const token = localStorage.getItem("token");
-
-        if (!token) {
-          router.replace("/login");
-          return;
-        }
-
-        /*
-         * Load dashboard information.
-         *
-         * IMPORTANT:
-         * These endpoints must match the routes that exist
-         * in your backend.
-         */
-
-        const headers = {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        };
-
-        /*
-         * Assessment
-         */
-
-        try {
-          const assessmentResponse = await fetch(
-            `${API_BASE_URL}/api/assessment`,
-            {
-              method: "GET",
-              headers,
-            }
-          );
-
-          if (assessmentResponse.ok) {
-            const assessmentData =
-              await assessmentResponse.json();
-
-            console.log(
-              "Assessment data:",
-              assessmentData
-            );
-
-            /*
-             * We will map your actual backend response
-             * after checking your assessment controller.
-             */
-
-            if (assessmentData) {
-              setAssessment({
-                name:
-                  assessmentData.name ||
-                  assessmentData.assessmentType ||
-                  assessmentData.type,
-
-                date:
-                  assessmentData.date ||
-                  assessmentData.completedAt,
-
-                severity:
-                  assessmentData.severity ||
-                  assessmentData.result,
-
-                description:
-                  assessmentData.description,
-              });
-            }
-          }
-        } catch (error) {
-          console.log(
-            "Assessment data unavailable:",
-            error
-          );
-        }
-
-        /*
-         * Appointment
-         */
-
-        try {
-          const appointmentResponse = await fetch(
-            `${API_BASE_URL}/api/book`,
-            {
-              method: "GET",
-              headers,
-            }
-          );
-
-          if (appointmentResponse.ok) {
-            const appointmentData =
-              await appointmentResponse.json();
-
-            console.log(
-              "Appointment data:",
-              appointmentData
-            );
-
-            /*
-             * We will map your actual backend response
-             * after checking your booking controller.
-             */
-
-            const data =
-              Array.isArray(appointmentData)
-                ? appointmentData[0]
-                : appointmentData;
-
-            if (data) {
-              setAppointment({
-                professionalName:
-                  data.professionalName ||
-                  data.counsellorName ||
-                  data.doctorName,
-
-                professionalType:
-                  data.professionalType ||
-                  data.specialization ||
-                  data.role,
-
-                date:
-                  data.date ||
-                  data.appointmentDate,
-
-                time:
-                  data.time ||
-                  data.appointmentTime,
-
-                mode:
-                  data.mode ||
-                  data.sessionType ||
-                  "Online Session",
-              });
-            }
-          }
-        } catch (error) {
-          console.log(
-            "Appointment data unavailable:",
-            error
-          );
-        }
-      } catch (error) {
-        console.error(
-          "Dashboard loading error:",
-          error
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadDashboard();
   }, [searchParams, router]);
-
-  const assessmentCompleted =
-    assessment !== null;
 
   return (
     <AuthGuard allowedRoles={["student"]}>
-      <div className="min-h-screen bg-[#f4fbfa]">
+      <main className="min-h-screen bg-white text-[#171717]">
+        <div className="mx-auto max-w-6xl px-5 py-8 md:px-8">
 
+          {/* Welcome Banner */}
+          <WelcomeBanner />
 
-        <div className="flex">
+          {/* Supportive Message */}
+          <section className="mt-12 max-w-4xl">
+            <h2 className="text-2xl font-bold text-[#171717]">
+              How are you feeling today?
+            </h2>
 
-          <StudentSidebar />
+            <div className="mt-5 space-y-4 text-base leading-8 text-[#555555]">
+              <p>
+                Life can sometimes feel overwhelming. There may be days
+                when everything seems difficult, when you feel tired
+                without knowing why, or when you simply need someone
+                who understands.
+              </p>
 
-          <main className="flex-1 min-w-0 p-5 md:p-8">
-            <div className="max-w-7xl mx-auto">
+              <p>
+                Please remember that you don't have to be okay all
+                the time. Every feeling you experience matters, and
+                it is okay to ask for support when you need it.
+              </p>
 
-              <WelcomeBanner />
+              <p>
+                You don't need to solve every problem today. Take
+                things slowly. Give yourself permission to rest.
+                Even getting through a difficult day is something
+                worth recognising.
+              </p>
 
-              {loading ? (
-                <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
-                  {[1, 2, 3, 4].map((item) => (
-                    <div
-                      key={item}
-                      className="
-                        h-40
-                        bg-white
-                        rounded-2xl
-                        border
-                        border-blue-100
-                        animate-pulse
-                      "
-                    />
-                  ))}
-                </div>
-              ) : (
-                <DashboardStats
-                  assessmentCompleted={
-                    assessmentCompleted
-                  }
-                  assessmentName={
-                    assessment?.name
-                  }
-                  wellbeingStatus={
-                    assessment?.severity
-                  }
-                  appointmentDate={
-                    appointment?.date
-                  }
-                  appointmentTime={
-                    appointment?.time
-                  }
-                />
-              )}
+              <p>
+                Your current situation does not define your entire
+                future. Better days are possible, and you deserve
+                the opportunity to experience them.
+              </p>
 
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
+              <p className="font-semibold text-[#171717]">
+                You are important. Your feelings are valid. And you
+                deserve care, kindness and support.
+              </p>
+            </div>
+          </section>
 
-                <RecentAssessment
-                  assessment={assessment}
-                />
+          
+          {/* Main Actions */}
+          {!isAnonymous && (
+          <section className="mt-12">
+            <h2 className="text-2xl font-bold text-[#171717]">
+              We're here for you
+            </h2>
 
-                <UpcomingAppointment
-                  appointment={appointment}
-                />
+            <p className="mt-2 text-[#666666]">
+              Whenever you feel ready, take a small step towards
+              looking after yourself.
+            </p>
 
-              </div>
+            <div className="mt-6 grid gap-6 md:grid-cols-2">
 
-              <RecommendedSection />
+              {/* Book Appointment Card */}
+              <Link
+                href="/booking"
+                className="group rounded-2xl border border-[#e5e5e5] bg-white p-7 transition hover:border-[#999999] hover:shadow-md"
+              >
+                <div className="text-3xl">🌿</div>
 
-              <QuickActions />
+                <h3 className="mt-4 text-xl font-bold text-[#171717]">
+                  Book an Appointment
+                </h3>
+
+                <p className="mt-3 leading-7 text-[#666666]">
+                  Connect with a counsellor and find a comfortable
+                  space to talk about what is on your mind.
+                </p>
+
+                <span className="mt-5 inline-block font-semibold text-[#171717]">
+                  Book Appointment →
+                </span>
+              </Link>
+
+              {/* Open Chat Card */}
+              <Link
+                href="/chat"
+                className="group rounded-2xl border border-[#e5e5e5] bg-white p-7 transition hover:border-[#999999] hover:shadow-md"
+              >
+                <div className="text-3xl">🤍</div>
+
+                <h3 className="mt-4 text-xl font-bold text-[#171717]">
+                  Open Chat
+                </h3>
+
+                <p className="mt-3 leading-7 text-[#666666]">
+                  Sometimes sharing what's on your mind can make
+                  things easier. Start a conversation whenever
+                  you feel ready.
+                </p>
+
+                <span className="mt-5 inline-block font-semibold text-[#171717]">
+                  Or open a chat →
+                </span>
+              </Link>
 
             </div>
-          </main>
+          </section>
+          )}
+
+
+          {/* Gentle Reminders */}
+          <section className="mt-14 border-t border-[#eeeeee] pt-9">
+            <h2 className="text-xl font-bold text-[#171717]">
+              A few gentle reminders
+            </h2>
+
+            <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {[
+                "You don't have to be perfect.",
+                "Taking a break is productive too.",
+                "Small progress is still progress.",
+                "It is okay to ask for help.",
+                "Your feelings deserve attention.",
+                "Be kind to yourself today.",
+              ].map((message, index) => (
+                <div
+                  key={index}
+                  className="rounded-xl bg-[#f7f7f7] p-5 text-[#444444]"
+                >
+                  {message}
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Closing Message */}
+          <section className="mt-12 rounded-2xl bg-[#f7f7f7] p-7 text-center">
+            <p className="mx-auto max-w-3xl leading-8 text-[#444444]">
+              Your wellbeing matters. Whatever you are facing today,
+              you deserve a moment of peace, someone who listens,
+              and the support to take your next step.
+            </p>
+
+            <p className="mt-3 font-semibold text-[#171717]">
+              Take it one day at a time. 🤍
+            </p>
+          </section>
 
         </div>
-      </div>
+      </main>
     </AuthGuard>
+  );
+}
+
+export default function StudentDashboard() {
+  return (
+    <Suspense fallback={<p>Loading dashboard...</p>}>
+      <StudentDashboardContent />
+    </Suspense>
   );
 }
