@@ -97,6 +97,7 @@ export const triggerEmergency = async (req, res) => {
             [
                 emergencyId,
                 JSON.stringify({
+                    emergencyId,
                     studentId,
                     severityScore,
                     description: normalizedDescription,
