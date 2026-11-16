@@ -70,12 +70,44 @@ export const triggerEmergency = async (req, res) => {
 
         const emergencyId = result.insertId;
 
+        // Queue the notification before acknowledging the emergency request.
+        await db.query(
+            `INSERT INTO emergency_notifications
+            (emergency_id, channel, recipient, payload, status)
+            VALUES (?, 'email', 'DISPATCH_GROUP', ?, 'PENDING')`,
+            [
+                emergencyId,
+                JSON.stringify({
+                    studentId,
+                    severityScore,
+                    description: normalizedDescription,
+                    fallbackTriggered,
+                    matchedKeywords
+                })
+            ]
+        );
+
         // Immediately acknowledge the student
         res.status(201).json({
             success: true,
-            message: 'Help request received. Emergency protocols activated. An active responder has been notified.',
+            message: 'Your help request has been received and recorded. The response team is being notified.',
             emergencyId,
             severity: severityScore
+        });
+
+        setImmediate(async () => {
+            try {
+                const { processPendingNotifications } = await import(
+                    '../services/notificationWorker.js'
+                );
+
+                await processPendingNotifications();
+            } catch (error) {
+                console.error(
+                    '[NOTIFICATIONS] Immediate processing error:',
+                    error
+                );
+            }
         });
 
         // =====================================================
@@ -83,9 +115,11 @@ export const triggerEmergency = async (req, res) => {
         // =====================================================
 
         // 3. Offload Socket Alerts and Redundant Notifications asynchronously in the background
+
+        // 3. Offload Socket Alerts and Redundant Notifications asynchronously
         setImmediate(async () => {
             try {
-                // Fetch available counsellors along with their database phone numbers and emails
+                // 1. Fetch available counsellors
                 const [availableCounsellors] = await db.query(`
             SELECT
                 u.id,
@@ -104,7 +138,50 @@ export const triggerEmergency = async (req, res) => {
                     `[EMERGENCY] ${availableCounsellors.length} available counsellors found.`
                 );
 
-                // Broadcast real-time alert through Socket.IO
+                const noCounsellorsAvailable =
+                    availableCounsellors.length === 0;
+
+                // 2. Escalate to administrators if no counsellors are available
+                if (noCounsellorsAvailable) {
+                    console.warn(
+                        `[ESCALATION] No counsellors available for Emergency #${emergencyId}. Escalating to Admin/Supervisor.`
+                    );
+
+                    const [admins] = await db.query(`
+                SELECT
+                    id,
+                    name,
+                    email,
+                    phone
+                FROM users
+                WHERE role IN ('admin', 'supervisor')
+                AND is_suspended = FALSE
+            `);
+
+                    console.log(
+                        `[ESCALATION] ${admins.length} active administrators/supervisors found.`
+                    );
+
+                    // Broadcast high-priority escalation to administrators
+                    if (global.io) {
+                        global.io.to('admin-room').emit(
+                            'unattendedEmergencyEscalation',
+                            {
+                                emergencyId,
+                                studentId,
+                                severityScore,
+                                fallbackTriggered,
+                                description: normalizedDescription ||
+                                    'Immediate crisis assistance requested',
+                                reason: 'ZERO_COUNSELLORS_AVAILABLE',
+                                priority: 'CRITICAL',
+                                timestamp: new Date().toISOString()
+                            }
+                        );
+                    }
+                }
+
+                // 3. Broadcast the normal emergency alert to counsellors
                 if (global.io) {
                     global.io.to('counsellors-room').emit('emergencyAlert', {
                         emergencyId,
@@ -114,28 +191,15 @@ export const triggerEmergency = async (req, res) => {
                         description: normalizedDescription ||
                             'Immediate crisis assistance requested',
                         timestamp: new Date().toISOString(),
-
                         targetedCounsellors: availableCounsellors.map(
                             counsellor => counsellor.id
                         )
                     });
                 }
 
-                // Dispatch email and SMS notifications using database records
-                await dispatchRedundantNotifications({
-                    emergencyId,
-                    studentId,
-                    severityScore,
-                    fallbackTriggered,
-                    matchedKeywords,
-                    description: normalizedDescription ||
-                        'Immediate crisis assistance requested',
-                    recipients: availableCounsellors
-                });
-
             } catch (bgError) {
                 console.error(
-                    'Background emergency notification error:',
+                    'Background emergency escalation error:',
                     bgError
                 );
             }
@@ -159,30 +223,41 @@ export const triggerEmergency = async (req, res) => {
 // =====================================================
 
 
-async function dispatchRedundantNotifications(details) {
+
+export async function dispatchRedundantNotifications(details) {
     try {
         let emailSent = false;
         let smsSent = false;
 
         const recipients = details.recipients || [];
 
-        // Get email addresses from available counsellors.
-        // Fall back to configured recipients if none are available.
+        const isAdminEscalation = Boolean(details.isAdminEscalation);
+
+        const alertPrefix = isAdminEscalation
+            ? '[ADMIN ESCALATION - NO COUNSELLORS AVAILABLE]'
+            : '[URGENT CRISIS ALERT]';
+
+        // ==========================================
+        // COLLECT EMAIL RECIPIENTS
+        // ==========================================
+
         const databaseEmailRecipients = recipients
-            .map(counsellor => counsellor.email)
+            .map(recipient => recipient.email)
             .filter(Boolean);
 
-        const emailRecipients = databaseEmailRecipients.length
+        const emailRecipients = databaseEmailRecipients.length > 0
             ? databaseEmailRecipients
             : getConfiguredRecipients('ON_CALL_COUNSELLOR_EMAILS');
 
-        // Get phone numbers from available counsellors.
-        // Fall back to configured recipients if none are available.
+        // ==========================================
+        // COLLECT PHONE RECIPIENTS
+        // ==========================================
+
         const databasePhoneRecipients = recipients
-            .map(counsellor => counsellor.phone)
+            .map(recipient => recipient.phone)
             .filter(Boolean);
 
-        const phoneRecipients = databasePhoneRecipients.length
+        const phoneRecipients = databasePhoneRecipients.length > 0
             ? databasePhoneRecipients
             : getConfiguredRecipients('ON_CALL_COUNSELLOR_PHONES');
 
@@ -201,28 +276,35 @@ async function dispatchRedundantNotifications(details) {
             try {
                 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
-                // Send an individual email to each recipient.
                 for (const email of emailRecipients) {
                     await sgMail.send({
                         to: email,
                         from: process.env.SENDGRID_FROM_EMAIL,
-                        subject: `URGENT CareBridge emergency alert #${details.emergencyId}`,
+
+                        subject: `${alertPrefix} Emergency #${details.emergencyId}`,
+
                         text: [
-                            'An emergency alert requires immediate counsellor attention.',
+                            alertPrefix,
+                            '',
+                            isAdminEscalation
+                                ? 'No counsellors are currently available. Administrator intervention is required.'
+                                : 'An emergency alert requires immediate counsellor attention.',
+                            '',
                             `Emergency ID: ${details.emergencyId}`,
                             `Severity: ${details.severityScore}`,
                             `Student ID: ${details.studentId}`,
                             `Description: ${details.description}`,
+                            `Escalation: ${isAdminEscalation ? 'Admin/Supervisor' : 'Counsellor'}`,
                             `Time: ${new Date().toISOString()}`
                         ].join('\n')
                     });
 
                     console.log(
-                        `[SendGrid] Emergency ${details.emergencyId} email sent to ${email}`
+                        `[SendGrid] ${alertPrefix} Email sent to ${email}`
                     );
-                }
 
-                emailSent = true;
+                    emailSent = true;
+                }
 
             } catch (emailErr) {
                 console.error(
@@ -232,7 +314,7 @@ async function dispatchRedundantNotifications(details) {
             }
         } else {
             console.error(
-                '[SendGrid] Skipped: Check SENDGRID_API_KEY, SENDGRID_FROM_EMAIL and recipient configuration.'
+                '[SendGrid] Skipped: Check SENDGRID_API_KEY, SENDGRID_FROM_EMAIL and email recipient configuration.'
             );
         }
 
@@ -240,10 +322,14 @@ async function dispatchRedundantNotifications(details) {
         // CHANNEL 2: SMS VIA TWILIO
         // ==========================================
 
-        // Send SMS if email failed OR redundant SMS is enabled.
+        // SMS is attempted when:
+        // 1. Email failed, OR
+        // 2. Redundant SMS is enabled, OR
+        // 3. Admin escalation is active.
+
         if (
-            (!emailSent || sendSmsRedundantly) &&
-            phoneRecipients.length > 0
+            phoneRecipients.length > 0 &&
+            (!emailSent || sendSmsRedundantly || isAdminEscalation)
         ) {
             if (
                 process.env.TWILIO_ACCOUNT_SID &&
@@ -257,10 +343,14 @@ async function dispatchRedundantNotifications(details) {
                     );
 
                     const message = [
-                        'URGENT CareBridge emergency alert',
+                        alertPrefix,
                         `Emergency ID: ${details.emergencyId}`,
                         `Severity: ${details.severityScore}`,
-                        `Description: ${details.description}`
+                        `Student ID: ${details.studentId}`,
+                        `Description: ${details.description}`,
+                        isAdminEscalation
+                            ? 'No counsellors available. Admin intervention required.'
+                            : 'Immediate counsellor attention required.'
                     ].join(' | ');
 
                     for (const phone of phoneRecipients) {
@@ -271,11 +361,11 @@ async function dispatchRedundantNotifications(details) {
                         });
 
                         console.log(
-                            `[Twilio] Emergency ${details.emergencyId} SMS sent to ${phone}`
+                            `[Twilio] ${alertPrefix} SMS sent to ${phone}`
                         );
-                    }
 
-                    smsSent = true;
+                        smsSent = true;
+                    }
 
                 } catch (smsErr) {
                     console.error(
@@ -300,29 +390,24 @@ async function dispatchRedundantNotifications(details) {
             );
         }
 
-        const riskFlags = details.matchedKeywords?.length
-            ? details.matchedKeywords.join(', ')
-            : 'none';
-
         console.log(
             `[EMERGENCY DISPATCHED] ID: ${details.emergencyId} | ` +
-            `Severity: ${details.severityScore} | ` +
-            `Fallback: ${details.fallbackTriggered} | ` +
-            `RiskFlags: ${riskFlags} | ` +
+            `AdminEscalation: ${isAdminEscalation} | ` +
             `Target Count: ${recipients.length} | ` +
             `Email: ${emailSent} | ` +
             `SMS: ${smsSent}`
         );
+
+        return { emailSent, smsSent };
 
     } catch (err) {
         console.error(
             'Notification dispatch failure across channels:',
             err
         );
+        return { emailSent: false, smsSent: false };
     }
 }
-
-
 
 // =====================================================
 // 4. ENVIRONMENT RECIPIENT HELPER

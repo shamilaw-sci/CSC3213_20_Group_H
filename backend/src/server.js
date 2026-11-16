@@ -9,6 +9,7 @@ import rateLimit from "express-rate-limit";
 import passport from "./config/passport.js";
 import { SECRET } from "./config.js";
 import pool, { testConnection } from "./config/db.js";
+import { processPendingNotifications } from "./services/notificationWorker.js";
 
 import authRoutes from "./routes/authRoutes.js";
 import emergencyRoutes from "./routes/emergencyRoutes.js";
@@ -264,8 +265,35 @@ async function start() {
     process.exit(1);
   }
 
+  // Process pending emergency notifications on server startup
+  try {
+    console.log("[NOTIFICATIONS] Processing pending notifications...");
+
+    await processPendingNotifications();
+
+    console.log("[NOTIFICATIONS] Initial processing completed.");
+  } catch (err) {
+    console.error(
+      "[NOTIFICATIONS] Initial processing failed:",
+      err.message
+    );
+  }
+
+  // Retry pending notifications every 15 seconds
+  setInterval(async () => {
+    try {
+      await processPendingNotifications();
+    } catch (err) {
+      console.error(
+        "[NOTIFICATIONS] Scheduled processing failed:",
+        err.message
+      );
+    }
+  }, 15000);
+
   server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
+    console.log("[NOTIFICATIONS] Retry worker running every 15 seconds.");
   });
 }
 

@@ -74,3 +74,17 @@ CREATE TABLE IF NOT EXISTS appointments (
     FOREIGN KEY (counsellor_id) REFERENCES counsellors(id) ON DELETE CASCADE,
     FOREIGN KEY (slot_id) REFERENCES availability_slots(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS emergency_notifications (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  emergency_id INT NOT NULL,
+  channel ENUM('socket', 'email', 'sms') NOT NULL,
+  recipient VARCHAR(255) NOT NULL,
+  payload JSON NOT NULL,
+  status ENUM('PENDING', 'SENT', 'FAILED') DEFAULT 'PENDING',
+  attempts INT DEFAULT 0,
+  last_error TEXT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (emergency_id) REFERENCES emergencies(id) ON DELETE CASCADE
+);

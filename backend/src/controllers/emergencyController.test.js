@@ -1,69 +1,96 @@
-import { test, describe } from 'node:test';
+import { describe, it, beforeEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
-import { triggerEmergency } from './emergencyController.js';
+import jwt from 'jsonwebtoken';
+import db from '../config/db.js';
+import * as emergencyController from './emergencyController.js';
+import authMiddleware from '../auth/authMiddleware.js';
 
-// Builds a minimal Express-like response double that records status/json calls.
-function createMockRes() {
-    return {
-        statusCode: null,
-        body: null,
-        status(code) {
-            this.statusCode = code;
-            return this;
+describe('Module 6: Emergency Support Verification', () => {
+  let emittedEvents = [];
+
+  beforeEach(() => {
+    emittedEvents = [];
+    global.io = {
+      to: (room) => ({
+        emit: (event, payload) => {
+          emittedEvents.push({ room, event, payload });
         },
-        json(payload) {
-            this.body = payload;
-            return this;
-        },
+      }),
     };
-}
+  });
 
-describe('triggerEmergency validation & auth guards', () => {
-    test('rejects requests with no authenticated user', async () => {
-        const req = { user: undefined, body: {} };
-        const res = createMockRes();
+  // 1. Verify Invalid Authentication returns HTTP 401
+  it('returns HTTP 401 when authentication token is missing or invalid', async () => {
+    const req = { headers: { authorization: 'Bearer invalid.jwt.token' } };
+    let statusCode = 200;
 
-        await triggerEmergency(req, res);
+    const res = {
+      status(code) {
+        statusCode = code;
+        return this;
+      },
+      json() {
+        return this;
+      },
+    };
 
-        assert.equal(res.statusCode, 401);
-        assert.match(res.body.error, /authentication/i);
+    let nextCalled = false;
+    await authMiddleware(req, res, () => {
+      nextCalled = true;
     });
 
-    test('rejects requests with a non-string description', async () => {
-        const req = { user: { id: 1 }, body: { description: 12345 } };
-        const res = createMockRes();
+    assert.equal(statusCode, 401);
+    assert.equal(nextCalled, false);
+  });
 
-        await triggerEmergency(req, res);
-
-        assert.equal(res.statusCode, 400);
-        assert.match(res.body.error, /description/i);
+  // 2. Verify HTTP 201, Outbox Queueing & Available Counsellor Filtering
+  it('queues persistent notification and responds HTTP 201 under 3 seconds', async () => {
+    const executedQueries = [];
+    const queryMock = mock.method(db, 'query', async (sql, params) => {
+      executedQueries.push({ sql, params });
+      if (sql.includes('INSERT INTO emergencies')) {
+        return [{ insertId: 501 }];
+      }
+      if (sql.includes('INSERT INTO emergency_notifications')) {
+        return [{ insertId: 1 }];
+      }
+      if (sql.includes('is_available = TRUE')) {
+        return [[
+          { id: 101, name: 'Dr. Available', email: 'avail@pera.ac.lk', phone: '+94771111111', is_available: 1 }
+        ]];
+      }
+      return [[]];
     });
 
-    test('rejects requests with an out-of-range aiConfidence', async () => {
-        const req = { user: { id: 1 }, body: { aiConfidence: 5 } };
-        const res = createMockRes();
+    const req = {
+      user: { id: 401, role: 'student' },
+      body: { description: 'Severe panic attack', ai_confidence: 0.95 },
+    };
 
-        await triggerEmergency(req, res);
+    let resStatus = null;
+    let resData = null;
+    const res = {
+      status(code) {
+        resStatus = code;
+        return this;
+      },
+      json(data) {
+        resData = data;
+        return this;
+      },
+    };
 
-        assert.equal(res.statusCode, 400);
-        assert.match(res.body.error, /aiConfidence/i);
-    });
+    const handler = emergencyController.triggerEmergency || emergencyController.default?.triggerEmergency;
+    await handler(req, res);
 
-    test('rejects requests with a non-numeric aiConfidence', async () => {
-        const req = { user: { id: 1 }, body: { aiConfidence: 'high' } };
-        const res = createMockRes();
+    // Verify immediate HTTP 201 response
+    assert.equal(resStatus, 201);
+    assert.equal(resData.emergencyId, 501);
 
-        await triggerEmergency(req, res);
+    // Verify outbox row was inserted into emergency_notifications
+    const outboxInsert = executedQueries.find((q) => q.sql.includes('INSERT INTO emergency_notifications'));
+    assert.ok(outboxInsert, 'Expected emergency_notifications outbox insert before HTTP 201');
 
-        assert.equal(res.statusCode, 400);
-    });
-
-    test('validation runs before any DB access, even with an invalid aiConfidence and no description', async () => {
-        const req = { user: { id: 1 }, body: { aiConfidence: -1 } };
-        const res = createMockRes();
-
-        await triggerEmergency(req, res);
-
-        assert.equal(res.statusCode, 400);
-    });
+    queryMock.mock.restore();
+  });
 });

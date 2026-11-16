@@ -11,21 +11,35 @@ import {
 } from "recharts";
 import { API_BASE_URL } from "@/services/api";
 import socket, { joinAdminRoom } from "@/services/socket";
-import { Users, UserCheck, AlertTriangle, ShieldCheck, UserX, CheckCircle, FileText } from "lucide-react";
+import {
+  Users,
+  UserCheck,
+  AlertTriangle,
+  ShieldCheck,
+  UserX,
+  CheckCircle,
+  FileText,
+} from "lucide-react";
 
 export default function AdminDashboardPage() {
   const [analytics, setAnalytics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [studentFilter, setStudentFilter] = useState<"all" | "registered" | "anonymous">("all");
-  
+
+  const [studentFilter, setStudentFilter] = useState<
+    "all" | "registered" | "anonymous"
+  >("all");
+
+  const [escalations, setEscalations] = useState<any[]>([]);
+
   useEffect(() => {
     const token = localStorage.getItem("token");
     fetch(`${API_BASE_URL}/api/admin/analytics`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(async (res) => {
-        if (!res.ok) throw new Error("Failed to fetch analytics or unauthorized.");
+        if (!res.ok)
+          throw new Error("Failed to fetch analytics or unauthorized.");
         return res.json();
       })
       .then((data) => {
@@ -43,21 +57,35 @@ export default function AdminDashboardPage() {
       window.location.reload();
     };
 
+    const handleEscalation = (data: any) => {
+      setEscalations((prev) => [data, ...prev]);
+    };
+
+    // Join the admin Socket.IO room
     joinAdminRoom();
+
+    // Listen for dashboard updates
     socket.on("usersUpdated", handleUsersUpdated);
+
+    // Listen for unattended emergency escalations
+    socket.on("unattendedEmergencyEscalation", handleEscalation);
 
     return () => {
       socket.off("usersUpdated", handleUsersUpdated);
+      socket.off("unattendedEmergencyEscalation", handleEscalation);
     };
   }, []);
 
   const handleVerifyCounsellor = async (counsellorId: number) => {
     const token = localStorage.getItem("token");
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/counsellors/${counsellorId}/verify`, {
-        method: "PUT",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(
+        `${API_BASE_URL}/api/admin/counsellors/${counsellorId}/verify`,
+        {
+          method: "PUT",
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
       if (!res.ok) throw new Error("Failed to update counsellor status");
       alert("Counsellor verified successfully!");
       window.location.reload(); // Refresh data
@@ -102,14 +130,44 @@ export default function AdminDashboardPage() {
 
   // Mock / dynamic data fallback for table mapping if backend arrays are empty
   const studentsList = analytics?.students || [
-    { id: 1, name: "Thishan Bandara", email: "thishan@pdn.ac.lk", type: "registered", status: "Active" },
-    { id: 2, name: "Anonymous-User-#402", email: "hidden@anonymous.local", type: "anonymous", status: "Active" },
-    { id: 3, name: "Uvindu Shamilka", email: "uvindu@pdn.ac.lk", type: "registered", status: "Suspended" },
+    {
+      id: 1,
+      name: "Thishan Bandara",
+      email: "thishan@pdn.ac.lk",
+      type: "registered",
+      status: "Active",
+    },
+    {
+      id: 2,
+      name: "Anonymous-User-#402",
+      email: "hidden@anonymous.local",
+      type: "anonymous",
+      status: "Active",
+    },
+    {
+      id: 3,
+      name: "Uvindu Shamilka",
+      email: "uvindu@pdn.ac.lk",
+      type: "registered",
+      status: "Suspended",
+    },
   ];
 
   const counsellorsList = analytics?.counsellors || [
-    { id: 101, name: "Dr. Samantha Perera", email: "samantha.p@peradeniya.ac.lk", department: "Mental Health & Wellness", verification_status: "pending" },
-    { id: 102, name: "Dr. W.M.H.U Wijethunga", email: "wijethunga@pdn.ac.lk", department: "Psychological Support", verification_status: "verified" },
+    {
+      id: 101,
+      name: "Dr. Samantha Perera",
+      email: "samantha.p@peradeniya.ac.lk",
+      department: "Mental Health & Wellness",
+      verification_status: "pending",
+    },
+    {
+      id: 102,
+      name: "Dr. W.M.H.U Wijethunga",
+      email: "wijethunga@pdn.ac.lk",
+      department: "Psychological Support",
+      verification_status: "verified",
+    },
   ];
 
   const filteredStudents = studentsList.filter((student: any) => {
@@ -120,12 +178,16 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="p-8 md:p-12 space-y-8 bg-gray-50 text-gray-900 min-h-screen font-sans">
-      
       {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight">Admin Oversight & Monitoring</h1>
-          <p className="text-gray-500 text-sm mt-1">Manage user accounts, verify professionals, and generate compliance audit reports.</p>
+          <h1 className="text-3xl font-extrabold tracking-tight">
+            Admin Oversight & Monitoring
+          </h1>
+          <p className="text-gray-500 text-sm mt-1">
+            Manage user accounts, verify professionals, and generate compliance
+            audit reports.
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -143,19 +205,58 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
+      {/* Unattended Emergency Escalation Alerts */}
+      {escalations.length > 0 && (
+        <div className="p-4 bg-rose-50 border-2 border-rose-600 rounded-2xl space-y-3">
+          <h3 className="text-rose-800 font-extrabold text-sm uppercase tracking-wider flex items-center gap-2">
+            <AlertTriangle size={18} />
+            Unattended Crisis Escalation (Zero Counsellors Available)
+          </h3>
+
+          {escalations.map((esc, idx) => (
+            <div
+              key={esc.emergencyId || idx}
+              className="text-sm text-rose-900 flex flex-col md:flex-row md:justify-between md:items-center gap-2 bg-white p-3 rounded-xl border border-rose-200"
+            >
+              <span>
+                <strong>Emergency #{esc.emergencyId}</strong> (Student ID:{" "}
+                {esc.studentId}) — Severity:{" "}
+                <strong>{esc.severityScore}</strong>: {esc.description}
+              </span>
+
+              <span className="text-xs text-gray-500 whitespace-nowrap">
+                {new Date(esc.timestamp).toLocaleTimeString()}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="p-6 bg-white border border-gray-100 rounded-2xl shadow-sm">
-          <p className="text-gray-500 text-sm font-semibold uppercase tracking-wider">Total Students & Anonymous</p>
-          <h3 className="text-4xl font-extrabold mt-3 text-gray-900">{analytics?.stats?.totalStudents || studentsList.length}</h3>
+          <p className="text-gray-500 text-sm font-semibold uppercase tracking-wider">
+            Total Students & Anonymous
+          </p>
+          <h3 className="text-4xl font-extrabold mt-3 text-gray-900">
+            {analytics?.stats?.totalStudents || studentsList.length}
+          </h3>
         </div>
         <div className="p-6 bg-white border border-gray-100 rounded-2xl shadow-sm">
-          <p className="text-gray-500 text-sm font-semibold uppercase tracking-wider">Active Counsellors</p>
-          <h3 className="text-4xl font-extrabold mt-3 text-gray-900">{analytics?.stats?.totalCounsellors || counsellorsList.length}</h3>
+          <p className="text-gray-500 text-sm font-semibold uppercase tracking-wider">
+            Active Counsellors
+          </p>
+          <h3 className="text-4xl font-extrabold mt-3 text-gray-900">
+            {analytics?.stats?.totalCounsellors || counsellorsList.length}
+          </h3>
         </div>
         <div className="p-6 bg-white border border-gray-100 rounded-2xl shadow-sm">
-          <p className="text-gray-500 text-sm font-semibold uppercase tracking-wider">Pending Crisis Alerts</p>
-          <h3 className="text-4xl font-extrabold mt-3 text-rose-600">{analytics?.stats?.activeEmergencies || 0}</h3>
+          <p className="text-gray-500 text-sm font-semibold uppercase tracking-wider">
+            Pending Crisis Alerts
+          </p>
+          <h3 className="text-4xl font-extrabold mt-3 text-rose-600">
+            {analytics?.stats?.activeEmergencies || 0}
+          </h3>
         </div>
       </div>
 
@@ -163,7 +264,8 @@ export default function AdminDashboardPage() {
       <div className="p-6 bg-white border border-gray-100 rounded-2xl shadow-sm space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-            <Users size={20} className="text-blue-600" /> Student Account Directory
+            <Users size={20} className="text-blue-600" /> Student Account
+            Directory
           </h2>
           {/* Filter Tabs */}
           <div className="flex bg-gray-100 p-1 rounded-xl text-xs font-bold">
@@ -200,8 +302,13 @@ export default function AdminDashboardPage() {
             </thead>
             <tbody className="divide-y divide-gray-50 text-sm">
               {filteredStudents.map((student: any, idx: number) => (
-                <tr key={student.id || idx} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="py-4 px-4 font-bold text-gray-900">{student.name}</td>
+                <tr
+                  key={student.id || idx}
+                  className="hover:bg-gray-50/50 transition-colors"
+                >
+                  <td className="py-4 px-4 font-bold text-gray-900">
+                    {student.name}
+                  </td>
                   <td className="py-4 px-4 text-gray-500">{student.email}</td>
                   <td className="py-4 px-4">
                     {student.type === "anonymous" ? (
@@ -215,7 +322,9 @@ export default function AdminDashboardPage() {
                     )}
                   </td>
                   <td className="py-4 px-4 font-semibold">
-                    <span className={`inline-block w-2 h-2 rounded-full mr-2 ${student.status === "Suspended" ? "bg-rose-500" : "bg-emerald-500"}`}></span>
+                    <span
+                      className={`inline-block w-2 h-2 rounded-full mr-2 ${student.status === "Suspended" ? "bg-rose-500" : "bg-emerald-500"}`}
+                    ></span>
                     {student.status || "Active"}
                   </td>
                 </tr>
@@ -228,7 +337,8 @@ export default function AdminDashboardPage() {
       {/* 2. Dedicated Counsellor Verification & Management Table (WBS 7.2) */}
       <div className="p-6 bg-white border border-gray-100 rounded-2xl shadow-sm space-y-6">
         <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-          <UserCheck size={20} className="text-indigo-600" /> Professional Counsellor Roster & Verification Queue
+          <UserCheck size={20} className="text-indigo-600" /> Professional
+          Counsellor Roster & Verification Queue
         </h2>
 
         <div className="overflow-x-auto">
@@ -244,12 +354,22 @@ export default function AdminDashboardPage() {
             </thead>
             <tbody className="divide-y divide-gray-50 text-sm">
               {counsellorsList.map((counsellor: any, idx: number) => (
-                <tr key={counsellor.id || idx} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="py-4 px-4 font-bold text-gray-900">{counsellor.name}</td>
-                  <td className="py-4 px-4 text-gray-500">{counsellor.email}</td>
-                  <td className="py-4 px-4 text-gray-600">{counsellor.department || "General Counselling"}</td>
+                <tr
+                  key={counsellor.id || idx}
+                  className="hover:bg-gray-50/50 transition-colors"
+                >
+                  <td className="py-4 px-4 font-bold text-gray-900">
+                    {counsellor.name}
+                  </td>
+                  <td className="py-4 px-4 text-gray-500">
+                    {counsellor.email}
+                  </td>
+                  <td className="py-4 px-4 text-gray-600">
+                    {counsellor.department || "General Counselling"}
+                  </td>
                   <td className="py-4 px-4">
-                    {counsellor.verification_status === "verified" || counsellor.verification_status === "Active" ? (
+                    {counsellor.verification_status === "verified" ||
+                    counsellor.verification_status === "Active" ? (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                         <CheckCircle size={12} /> Verified
                       </span>
@@ -269,7 +389,9 @@ export default function AdminDashboardPage() {
                       </button>
                     )}
                     <button
-                      onClick={() => alert(`Reviewing credentials for ${counsellor.name}`)}
+                      onClick={() =>
+                        alert(`Reviewing credentials for ${counsellor.name}`)
+                      }
                       className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-bold transition-all"
                     >
                       View Credentials
@@ -284,11 +406,24 @@ export default function AdminDashboardPage() {
 
       {/* Severity Trends Chart (WBS 7.3) */}
       <div className="p-6 bg-white border border-gray-100 rounded-2xl shadow-sm">
-        <h2 className="text-xl font-bold mb-6 text-gray-800">Emergency Incident Severity Trends</h2>
+        <h2 className="text-xl font-bold mb-6 text-gray-800">
+          Emergency Incident Severity Trends
+        </h2>
         <div className="h-80 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={analytics?.charts?.severityStats || [{ severity_score: 'High', count: 4 }, { severity_score: 'Critical', count: 2 }]}>
-              <XAxis dataKey="severity_score" stroke="#9ca3af" tick={{ fill: "#4b5563" }} />
+            <BarChart
+              data={
+                analytics?.charts?.severityStats || [
+                  { severity_score: "High", count: 4 },
+                  { severity_score: "Critical", count: 2 },
+                ]
+              }
+            >
+              <XAxis
+                dataKey="severity_score"
+                stroke="#9ca3af"
+                tick={{ fill: "#4b5563" }}
+              />
               <YAxis stroke="#9ca3af" tick={{ fill: "#4b5563" }} />
               <Tooltip
                 contentStyle={{
@@ -303,7 +438,6 @@ export default function AdminDashboardPage() {
           </ResponsiveContainer>
         </div>
       </div>
-
     </div>
   );
 }
