@@ -85,13 +85,15 @@ TWILIO_ACCOUNT_SID=your_twilio_account_sid
 TWILIO_AUTH_TOKEN=your_twilio_auth_token
 TWILIO_FROM_NUMBER=+15551234567
 ON_CALL_COUNSELLOR_PHONES=+15557654321
-TWILIO_REDUNDANT_ESCALATION=false
 ```
 
 `ON_CALL_COUNSELLOR_EMAILS` and `ON_CALL_COUNSELLOR_PHONES` accept comma-separated
-recipient lists. SendGrid is attempted first; Twilio is used when email fails or
-when `TWILIO_REDUNDANT_ESCALATION=true`. Provider credentials and recipient
-contact details must be supplied through environment variables.
+fallback recipient lists. Emergency alerts use the phone numbers stored on
+available counsellor profiles for Twilio SMS; the environment phone list is used
+when no database phone numbers are available. Twilio SMS is always attempted
+for configured high-urgency alerts, so counsellors can be reached away from
+their computers. Provider credentials must be supplied through environment
+variables.
 
 The default port is `6001`, not `5050` — on macOS, `5000` is commonly held by the
 AirPlay Receiver service, causing an `EADDRINUSE` crash on startup.
@@ -151,6 +153,9 @@ npm run dev
 - The frontend reads the backend URL from `NEXT_PUBLIC_API_BASE_URL` (see
   `frontend/services/api.ts`), defaulting to `http://localhost:6001` if unset.
 - The emergency endpoint is available at `<backend URL>/api/emergency`.
+- Counsellors can set their emergency availability on the counsellor dashboard.
+  Only counsellors marked available are targeted for new emergency alerts;
+  availability remains set after logout until changed.
 - The auth routes are available under `<backend URL>/api/auth`.
 - Google OAuth is only enabled when `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are provided.
 

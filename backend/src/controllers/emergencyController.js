@@ -4,6 +4,24 @@ import { assessSeverity, ValidationError } from '../utils/riskAssessment.js';
 import sgMail from '@sendgrid/mail';
 import twilio from 'twilio';
 
+async function getAvailableCounsellors() {
+    const [rows] = await db.query(`
+        SELECT
+            u.id,
+            u.name,
+            u.email,
+            u.phone,
+            cp.is_available
+        FROM users u
+        JOIN counsellor_profiles cp
+            ON u.id = cp.user_id
+        WHERE u.role = 'counsellor'
+        AND cp.is_available = TRUE
+    `);
+
+    return rows;
+}
+
 // =====================================================
 // 1. TRIGGER EMERGENCY
 // =====================================================
@@ -69,6 +87,7 @@ export const triggerEmergency = async (req, res) => {
         );
 
         const emergencyId = result.insertId;
+        const availableCounsellors = await getAvailableCounsellors();
 
         // Queue the notification before acknowledging the emergency request.
         await db.query(
@@ -82,7 +101,8 @@ export const triggerEmergency = async (req, res) => {
                     severityScore,
                     description: normalizedDescription,
                     fallbackTriggered,
-                    matchedKeywords
+                    matchedKeywords,
+                    recipients: availableCounsellors
                 })
             ]
         );
@@ -114,26 +134,9 @@ export const triggerEmergency = async (req, res) => {
         // 2. BACKGROUND EMERGENCY NOTIFICATIONS
         // =====================================================
 
-        // 3. Offload Socket Alerts and Redundant Notifications asynchronously in the background
-
-        // 3. Offload Socket Alerts and Redundant Notifications asynchronously
+        // Offload socket alerts and escalation checks asynchronously.
         setImmediate(async () => {
             try {
-                // 1. Fetch available counsellors
-                const [availableCounsellors] = await db.query(`
-            SELECT
-                u.id,
-                u.name,
-                u.email,
-                NULL AS phone,
-                cp.is_available
-            FROM users u
-            JOIN counsellor_profiles cp
-                ON u.id = cp.user_id
-            WHERE u.role = 'counsellor'
-            AND cp.is_available = TRUE
-        `);
-
                 console.log(
                     `[EMERGENCY] ${availableCounsellors.length} available counsellors found.`
                 );
@@ -141,7 +144,7 @@ export const triggerEmergency = async (req, res) => {
                 const noCounsellorsAvailable =
                     availableCounsellors.length === 0;
 
-                // 2. Escalate to administrators if no counsellors are available
+                // Escalate to administrators if no counsellors are available.
                 if (noCounsellorsAvailable) {
                     console.warn(
                         `[ESCALATION] No counsellors available for Emergency #${emergencyId}. Escalating to Admin/Supervisor.`
@@ -152,7 +155,7 @@ export const triggerEmergency = async (req, res) => {
                     id,
                     name,
                     email,
-                    NULL AS phone
+                    phone
                 FROM users
                 WHERE role IN ('admin', 'supervisor')
                 AND is_suspended = FALSE
@@ -181,7 +184,7 @@ export const triggerEmergency = async (req, res) => {
                     }
                 }
 
-                // 3. Broadcast the normal emergency alert to counsellors
+                // Broadcast the normal emergency alert to counsellors.
                 if (global.io) {
                     const alert = {
                         emergencyId,
@@ -267,9 +270,6 @@ export async function dispatchRedundantNotifications(details) {
             ? databasePhoneRecipients
             : getConfiguredRecipients('ON_CALL_COUNSELLOR_PHONES');
 
-        const sendSmsRedundantly =
-            process.env.TWILIO_REDUNDANT_ESCALATION === 'true';
-
         // ==========================================
         // CHANNEL 1: EMAIL VIA SENDGRID
         // ==========================================
@@ -328,14 +328,11 @@ export async function dispatchRedundantNotifications(details) {
         // CHANNEL 2: SMS VIA TWILIO
         // ==========================================
 
-        // SMS is attempted when:
-        // 1. Email failed, OR
-        // 2. Redundant SMS is enabled, OR
-        // 3. Admin escalation is active.
+        // SMS is always attempted for high-urgency alerts so counsellors can
+        // respond when they are away from their computers.
 
         if (
-            phoneRecipients.length > 0 &&
-            (!emailSent || sendSmsRedundantly || isAdminEscalation)
+            phoneRecipients.length > 0
         ) {
             if (
                 process.env.TWILIO_ACCOUNT_SID &&

@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS users (
     name VARCHAR(255),
     email VARCHAR(255) UNIQUE,
     password VARCHAR(255),
+    phone VARCHAR(32),
     role ENUM('student', 'counsellor', 'admin', 'supervisor', 'anonymous') NOT NULL DEFAULT 'student',
     anonymousId VARCHAR(100),
     isAnonymous BOOLEAN NOT NULL DEFAULT FALSE,

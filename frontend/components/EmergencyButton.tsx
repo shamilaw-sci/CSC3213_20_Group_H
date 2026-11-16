@@ -2,9 +2,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { API_BASE_URL } from "../services/api";
 import socket from "@/services/socket";
+import CrisisResourcesBanner from "./CrisisResourcesBanner";
 
 const PENDING_REQUEST_KEY = "pendingEmergencyRequest";
 
@@ -17,14 +18,12 @@ interface EmergencyAcceptedData {
 interface EmergencyResponse {
     success: boolean;
     message?: string;
-    request?: {
-        id: number;
-        room_id: string;
-    };
+    emergencyId?: number;
 }
 
 export default function EmergencyButton() {
     const router = useRouter();
+    const pathname = usePathname();
 
     const [panelOpen, setPanelOpen] = useState(false);
     const [holding, setHolding] = useState(false);
@@ -116,7 +115,7 @@ export default function EmergencyButton() {
 
             const data: EmergencyResponse = await response.json();
 
-            if (!response.ok || !data.request) {
+            if (!response.ok || !data.success || !data.emergencyId) {
                 throw new Error(
                     data.message || "Failed to dispatch emergency call."
                 );
@@ -126,8 +125,8 @@ export default function EmergencyButton() {
             localStorage.setItem(
                 PENDING_REQUEST_KEY,
                 JSON.stringify({
-                    id: data.request.id,
-                    roomId: data.request.room_id,
+                    id: data.emergencyId,
+                    roomId: `emergency-${data.emergencyId}`,
                 })
             );
 
@@ -197,7 +196,7 @@ export default function EmergencyButton() {
                     setErrorMessage("");
                     setPanelOpen(true);
                 }}
-                className="fixed bottom-6 right-6 z-50 flex cursor-pointer items-center gap-3 rounded-full bg-red-600 px-6 py-4 font-extrabold text-white shadow-2xl transition-all hover:bg-red-700"
+                className={`${pathname === "/emergency" ? "relative mx-auto mb-6" : "fixed bottom-6 right-6 z-50"} flex cursor-pointer items-center gap-3 rounded-full bg-red-600 px-6 py-4 font-extrabold text-white shadow-2xl transition-all hover:bg-red-700`}
                 aria-label="Emergency Help"
             >
                 <span className="text-xl">🚨</span>
@@ -207,7 +206,7 @@ export default function EmergencyButton() {
             {panelOpen && (
                 <div className="fixed inset-0 z-50 flex animate-fade-in items-center justify-center bg-black/70 p-4 backdrop-blur-md">
 
-                    <div className="w-full max-w-lg rounded-3xl bg-white p-8 text-center shadow-2xl">
+                    <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl bg-white p-8 text-center shadow-2xl">
 
                         <div className="mb-2 text-4xl">⚠️</div>
 
@@ -218,6 +217,10 @@ export default function EmergencyButton() {
                         <p className="mb-6 text-base font-bold text-gray-800">
                             Are you in immediate danger or thinking about harming yourself?
                         </p>
+
+                        <div className="mb-6 text-left">
+                            <CrisisResourcesBanner />
+                        </div>
 
                         {errorMessage && (
                             <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-600">
@@ -283,7 +286,7 @@ export default function EmergencyButton() {
 
             {acknowledged && (
                 <div className="fixed left-1/2 top-6 z-50 -translate-x-1/2 animate-bounce rounded-2xl bg-emerald-600 px-6 py-4 text-sm font-bold tracking-wide text-white shadow-2xl">
-                    ✓ Help request received. An emergency responder has been alerted. Please stay calm.
+                    ✓ Your help request has been received and recorded. The response team is being notified.
                 </div>
             )}
         </>

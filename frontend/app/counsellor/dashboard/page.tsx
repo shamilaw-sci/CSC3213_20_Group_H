@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import socket from "@/services/socket";
 import { logout } from "@/lib/auth";
+import { API_BASE_URL } from "@/services/api";
 
 type EmergencyAlert = {
   emergencyId?: number;
@@ -18,6 +19,10 @@ export default function CounsellorDashboard() {
   const router = useRouter();
   const [alerts, setAlerts] = useState<EmergencyAlert[]>([]);
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
+  const [availabilitySaving, setAvailabilitySaving] = useState(false);
+  const [availabilityError, setAvailabilityError] = useState("");
+  const [socketConnected, setSocketConnected] = useState(socket.connected);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -32,8 +37,38 @@ export default function CounsellorDashboard() {
 
     setIsAuthorized(true);
 
-    // Join this counsellor's room for real-time emergency broadcasts
-    socket.emit("joinRoom", `counsellor-${user.id}`);
+    const joinCounsellorRoom = () => {
+      socket.emit("joinRoom", `counsellor-${user.id}`);
+      setSocketConnected(true);
+    };
+    const handleDisconnect = () => setSocketConnected(false);
+
+    socket.on("connect", joinCounsellorRoom);
+    socket.on("disconnect", handleDisconnect);
+    if (socket.connected) joinCounsellorRoom();
+
+    const controller = new AbortController();
+    const loadAvailability = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/counsellors/me/emergency-availability`, {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal,
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.message || data.error || "Unable to load emergency availability.");
+        }
+        if (typeof data.isAvailable !== "boolean") {
+          throw new Error("Invalid emergency availability response.");
+        }
+        setIsAvailable(data.isAvailable);
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          setAvailabilityError(error instanceof Error ? error.message : "Unable to load emergency availability.");
+        }
+      }
+    };
+    void loadAvailability();
 
     const handleEmergencyAlert = (alertData: EmergencyAlert) => {
       console.warn(
@@ -46,9 +81,45 @@ export default function CounsellorDashboard() {
     socket.on("emergencyAlert", handleEmergencyAlert);
 
     return () => {
+      controller.abort();
+      socket.off("connect", joinCounsellorRoom);
+      socket.off("disconnect", handleDisconnect);
       socket.off("emergencyAlert", handleEmergencyAlert);
     };
   }, [router]);
+
+  const updateAvailability = async () => {
+    if (isAvailable === null) return;
+
+    setAvailabilitySaving(true);
+    setAvailabilityError("");
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("Please log in again to update your availability.");
+
+      const response = await fetch(`${API_BASE_URL}/api/counsellors/me/emergency-availability`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ isAvailable: !isAvailable }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || data.error || "Unable to update emergency availability.");
+      }
+      if (typeof data.isAvailable !== "boolean") {
+        throw new Error("Invalid emergency availability response.");
+      }
+      setIsAvailable(data.isAvailable);
+    } catch (error) {
+      setIsAvailable(null);
+      setAvailabilityError(`${error instanceof Error ? error.message : "Unable to update emergency availability."} Refresh to confirm your status.`);
+    } finally {
+      setAvailabilitySaving(false);
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -94,8 +165,26 @@ export default function CounsellorDashboard() {
         </button>
       </div>
 
-      <p style={{ color: "#555" }}>
-        Listening for real-time emergency signals on your counsellor room.
+      <section aria-labelledby="emergency-availability">
+        <h2 id="emergency-availability">Emergency availability</h2>
+        <p>
+          Status: {isAvailable === null ? "Unknown" : isAvailable ? "Available" : "Unavailable"}
+        </p>
+        <button
+          type="button"
+          onClick={updateAvailability}
+          disabled={isAvailable === null || availabilitySaving}
+          style={{ padding: "10px 16px", cursor: "pointer" }}
+        >
+          {availabilitySaving ? "Saving..." : isAvailable ? "Mark unavailable" : "Mark available"}
+        </button>
+        <p style={{ color: "#555" }}>
+          Only available counsellors are targeted for emergency alerts. Your status stays set until you change it, including after logout.
+        </p>
+        {availabilityError && <p role="alert" style={{ color: "#b91c1c" }}>{availabilityError}</p>}
+      </section>
+      <p role="status" style={{ color: socketConnected ? "#166534" : "#b91c1c" }}>
+        {socketConnected ? "Connected to live emergency alerts." : "Disconnected from live emergency alerts. Check your connection and refresh if needed."}
       </p>
 
       <hr style={{ margin: "20px 0" }} />

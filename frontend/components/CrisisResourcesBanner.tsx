@@ -22,8 +22,17 @@ const DEFAULT_RESOURCES: CrisisResources = {
       number: "119",
       availability: "Immediate emergency response",
     },
+    {
+      name: "University Counselling Support Desk",
+      number: "+94701343444",
+      availability: "Notifies on-call CareBridge counsellor",
+    },
   ],
 };
+
+function getTelHref(number: string) {
+  return `tel:${number.replace(/[^\d+]/g, "")}`;
+}
 
 export default function CrisisResourcesBanner({
   resources,
@@ -67,16 +76,20 @@ export default function CrisisResourcesBanner({
         {effective.contacts.map((contact) => (
           <div
             key={contact.name}
-            className="flex items-center justify-between rounded-xl bg-white border border-red-200 px-3 py-2"
+            className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-red-200 bg-white px-3 py-2"
           >
-            <div>
+            <div className="min-w-0 flex-1 basis-32">
               <p className="text-xs font-bold text-gray-900">{contact.name}</p>
               <p className="text-[11px] text-gray-500">{contact.availability}</p>
             </div>
-            <span className="inline-flex items-center gap-1 rounded-lg bg-red-600 px-2.5 py-1 text-xs font-bold text-white">
+            <a
+              href={getTelHref(contact.number)}
+              aria-label={`Call ${contact.name} at ${contact.number}`}
+              className="inline-flex min-h-11 shrink-0 items-center gap-1 rounded-lg bg-red-600 px-3 py-2 text-xs font-bold text-white hover:bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700"
+            >
               <Phone size={12} />
               {contact.number}
-            </span>
+            </a>
           </div>
         ))}
       </div>

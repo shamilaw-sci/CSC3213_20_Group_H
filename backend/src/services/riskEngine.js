@@ -28,6 +28,10 @@ export const VALID_DEPRESSION_INDICATORS = [
 export const LOW_CONFIDENCE_THRESHOLD = 0.6;
 
 export function getConfiguredCrisisResources() {
+  const configuredCampusContact = process.env.CAMPUS_COUNSELLING_CONTACT?.trim();
+  const campusContactIsPhoneNumber =
+    configuredCampusContact && /^\+?[\d\s().-]+$/.test(configuredCampusContact);
+
   return {
     disclaimer:
       "CareBridge provides supportive screening and cannot automatically contact emergency services on your behalf. If you are in immediate danger, please call local emergency services right away.",
@@ -49,7 +53,9 @@ export function getConfiguredCrisisResources() {
       },
       {
         name: "University Counselling Support Desk",
-        number: process.env.CAMPUS_COUNSELLING_CONTACT || "Use the Emergency Help button on screen",
+        number: campusContactIsPhoneNumber
+          ? configuredCampusContact
+          : "+94701343444",
         availability: "Notifies on-call CareBridge counsellor",
       },
     ],

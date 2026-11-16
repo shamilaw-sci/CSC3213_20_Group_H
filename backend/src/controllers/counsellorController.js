@@ -1,5 +1,51 @@
 import db from "../config/db.js";
 
+export const getEmergencyAvailability = async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      "SELECT is_available FROM counsellor_profiles WHERE user_id = ?",
+      [req.user.id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Counsellor profile not found." });
+    }
+
+    return res.json({ isAvailable: rows.some((row) => Boolean(row.is_available)) });
+  } catch (error) {
+    console.error("Failed to load emergency availability:", error);
+    return res.status(500).json({ message: "Unable to load emergency availability." });
+  }
+};
+
+export const updateEmergencyAvailability = async (req, res) => {
+  if (typeof req.body?.isAvailable !== "boolean") {
+    return res.status(400).json({ message: "isAvailable must be a boolean." });
+  }
+
+  try {
+    const [result] = await db.query(
+      "UPDATE counsellor_profiles SET is_available = ? WHERE user_id = ?",
+      [req.body.isAvailable, req.user.id]
+    );
+
+    if (result.affectedRows === 0) {
+      const [rows] = await db.query(
+        "SELECT id FROM counsellor_profiles WHERE user_id = ?",
+        [req.user.id]
+      );
+      if (rows.length === 0) {
+        return res.status(404).json({ message: "Counsellor profile not found." });
+      }
+    }
+
+    return res.json({ isAvailable: req.body.isAvailable });
+  } catch (error) {
+    console.error("Failed to update emergency availability:", error);
+    return res.status(500).json({ message: "Unable to update emergency availability." });
+  }
+};
+
 let bookingTablesReadyPromise = null;
 
 export const ensureBookingTables = () => {

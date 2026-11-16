@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { API_BASE_URL } from "../../services/api";
+import CrisisResourcesBanner from "../../components/CrisisResourcesBanner";
 
 export default function EmergencyPage() {
   const [acknowledgement, setAcknowledgement] = useState("");
@@ -56,9 +57,9 @@ export default function EmergencyPage() {
   };
 
   return (
-    <main className="max-w-3xl mx-auto p-6">
-      <section className="bg-white rounded-xl shadow-md p-6">
-        <h1 className="text-3xl font-bold mb-4">Emergency Help</h1>
+    <main className="mx-auto w-full max-w-3xl px-4 py-6 sm:p-6">
+      <section className="rounded-xl bg-white p-4 shadow-md sm:p-6">
+        <h1 className="mb-4 text-2xl font-bold sm:text-3xl">Emergency Help</h1>
         <p className="mb-4 text-gray-700">
           If you need urgent support, press the button below. You will receive
           immediate acknowledgement while we send your request.
@@ -68,7 +69,7 @@ export default function EmergencyPage() {
           type="button"
           onClick={handleHelpRequest}
           disabled={isSubmitting}
-          className="bg-red-600 text-white px-5 py-3 rounded-md hover:bg-red-700 disabled:opacity-50"
+          className="min-h-11 w-full rounded-md bg-red-600 px-5 py-3 font-semibold text-white hover:bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700 disabled:opacity-50 sm:w-auto"
         >
           {isSubmitting ? "Sending help request..." : "Request Help Now"}
         </button>
@@ -84,6 +85,10 @@ export default function EmergencyPage() {
             {error}
           </div>
         ) : null}
+
+        <div className="mt-6">
+          <CrisisResourcesBanner />
+        </div>
       </section>
     </main>
   );

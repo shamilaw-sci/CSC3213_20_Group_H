@@ -44,6 +44,8 @@ async function addColumnIfMissing(tableName, columnName, definitionSql) {
 }
 
 export async function runMigrations() {
+  await addColumnIfMissing("users", "phone", "phone VARCHAR(32) NULL AFTER password");
+
   await db.query(`
     CREATE TABLE IF NOT EXISTS conversations (
       id INT AUTO_INCREMENT PRIMARY KEY,

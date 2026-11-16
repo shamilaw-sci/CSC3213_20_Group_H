@@ -64,7 +64,7 @@ export default function AppointmentBooking() {
 
       if (!user.id) return;
 
-      const res = await fetch(`http://localhost:6001/api/sessions/${user.id}`);
+      const res = await fetch(`http://localhost:5050/api/sessions/${user.id}`);
 
       const data = await res.json();
 

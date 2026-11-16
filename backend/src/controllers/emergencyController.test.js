@@ -87,6 +87,8 @@ describe('Module 6: Emergency Support Verification', () => {
 
     const outboxInsert = executedQueries.find((q) => q.sql.includes('INSERT INTO emergency_notifications'));
     assert.ok(outboxInsert, 'Expected emergency_notifications outbox insert before HTTP 201');
+    const queuedPayload = JSON.parse(outboxInsert.params[1]);
+    assert.equal(queuedPayload.recipients[0].phone, '+94771111111');
 
     queryMock.mock.restore();
   });

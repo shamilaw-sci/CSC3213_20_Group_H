@@ -167,6 +167,26 @@ describe("evaluateOperationalRisk (Backend Risk Validation Rules)", () => {
     assert.match(resources.disclaimer, /cannot automatically contact emergency services/i);
     assert.ok(resources.contacts.length >= 3);
   });
+
+  test("crisis resources use a dialable campus hotline when configured", () => {
+    const originalContact = process.env.CAMPUS_COUNSELLING_CONTACT;
+
+    try {
+      process.env.CAMPUS_COUNSELLING_CONTACT = "Use the Emergency Help button on screen";
+      const resources = getConfiguredCrisisResources();
+      const campusContact = resources.contacts.find(
+        (contact) => contact.name === "University Counselling Support Desk",
+      );
+
+      assert.equal(campusContact?.number, "+94701343444");
+    } finally {
+      if (originalContact === undefined) {
+        delete process.env.CAMPUS_COUNSELLING_CONTACT;
+      } else {
+        process.env.CAMPUS_COUNSELLING_CONTACT = originalContact;
+      }
+    }
+  });
 });
 
 describe("Structured AI JSON parsing & validation", () => {

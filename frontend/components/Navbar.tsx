@@ -111,11 +111,11 @@ export default function Navbar() {
     "flex items-center gap-2 rounded-lg px-3 py-2 text-gray-600 transition-colors hover:bg-blue-50 hover:text-blue-700";
 
   return (
-    <header className="sticky top-0 z-50 flex items-center justify-between border-b border-gray-100 bg-white/95 px-6 py-4 shadow-sm backdrop-blur md:px-12">
+    <header className="sticky top-0 z-50 flex items-center justify-between gap-2 border-b border-gray-100 bg-white/95 px-3 py-4 shadow-sm backdrop-blur sm:px-6 md:px-12">
       <div className="flex items-center gap-8">
         <Link
           href="/"
-          className="text-2xl font-extrabold tracking-tight text-blue-700 transition-colors hover:text-blue-800"
+          className="whitespace-nowrap text-lg font-extrabold tracking-tight text-blue-700 transition-colors hover:text-blue-800 sm:text-2xl"
         >
           CareBridge
         </Link>
@@ -193,7 +193,7 @@ export default function Navbar() {
 
       <div className="flex items-center">
         {!isLoggedIn ? (
-          <div className="flex items-center gap-4 text-sm font-medium">
+          <div className="flex items-center gap-2 text-sm font-medium sm:gap-4">
             <Link
               href="/features"
               className="text-gray-600 transition-colors hover:text-blue-600"
@@ -217,7 +217,7 @@ export default function Navbar() {
 
             <Link
               href="/login"
-              className="rounded-full bg-blue-600 px-5 py-2 font-semibold text-white shadow-sm transition-colors hover:bg-blue-700"
+              className="whitespace-nowrap rounded-full bg-blue-600 px-3 py-2 font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 sm:px-5"
             >
               Sign In
             </Link>
