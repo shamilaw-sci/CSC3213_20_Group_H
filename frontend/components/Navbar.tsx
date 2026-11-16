@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -16,37 +17,69 @@ import {
 } from "lucide-react";
 import { getToken, logout } from "@/services/api";
 
+interface JwtPayload {
+  id?: number;
+  name?: string;
+  role?: string;
+}
+
+function decodeToken(token: string): JwtPayload | null {
+  try {
+    const payload = token.split(".")[1];
+    if (!payload) return null;
+
+    const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const decoded = atob(base64);
+    const bytes = Uint8Array.from(decoded, (char) => char.charCodeAt(0));
+
+    return JSON.parse(new TextDecoder().decode(bytes)) as JwtPayload;
+  } catch {
+    return null;
+  }
+}
+
 export default function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [role, setRole] = useState<string | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [userName, setUserName] = useState("");
+  const [userRole, setUserRole] = useState("");
 
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const syncAuthState = () => {
+    const checkUser = () => {
       const token = getToken();
-      const currentRole = localStorage.getItem("role");
 
-      setIsLoggedIn(!!token);
-      setRole(currentRole);
+      if (token) {
+        const decoded = decodeToken(token);
 
-      setIsAdmin(
-        !!token &&
-          !!currentRole &&
-          ["admin", "supervisor"].includes(currentRole.toLowerCase()),
-      );
+        if (decoded) {
+          const role = (decoded.role || "").toLowerCase();
+
+          setIsLoggedIn(true);
+          setUserName(decoded.name || "User");
+          setUserRole(role);
+          setIsAdmin(role === "admin" || role === "supervisor");
+        } else {
+          setIsLoggedIn(false);
+          setUserName("");
+          setUserRole("");
+          setIsAdmin(false);
+        }
+      } else {
+        setIsLoggedIn(false);
+        setUserName("");
+        setUserRole("");
+        setIsAdmin(false);
+      }
     };
 
-    // Check authentication when Navbar mounts
-    syncAuthState();
+    checkUser();
 
-    // Listen for login/logout changes in this tab
-    window.addEventListener("authChange", syncAuthState);
-
-    // Handle authentication changes from another browser tab
-    window.addEventListener("storage", syncAuthState);
+    window.addEventListener("auth-changed", checkUser);
+    window.addEventListener("authChange", checkUser);
+    window.addEventListener("storage", checkUser);
 
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -60,22 +93,25 @@ export default function Navbar() {
     document.addEventListener("mousedown", handleClickOutside);
 
     return () => {
-      window.removeEventListener("authChange", syncAuthState);
-      window.removeEventListener("storage", syncAuthState);
+      window.removeEventListener("auth-changed", checkUser);
+      window.removeEventListener("authChange", checkUser);
+      window.removeEventListener("storage", checkUser);
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
   const handleLogout = () => {
     logout();
-
+    window.dispatchEvent(new Event("auth-changed"));
     window.dispatchEvent(new Event("authChange"));
-
     window.location.href = "/login";
   };
 
+  const navLinkClass =
+    "flex items-center gap-2 rounded-lg px-3 py-2 text-gray-600 transition-colors hover:bg-blue-50 hover:text-blue-700";
+
   return (
-    <header className="sticky top-0 z-50 flex justify-between items-center px-6 md:px-12 py-4 bg-white/95 backdrop-blur border-b border-gray-100 shadow-sm">
+    <header className="sticky top-0 z-50 flex items-center justify-between border-b border-gray-100 bg-white/95 px-6 py-4 shadow-sm backdrop-blur md:px-12">
       <div className="flex items-center gap-8">
         <Link
           href="/"
@@ -85,67 +121,98 @@ export default function Navbar() {
         </Link>
 
         {isLoggedIn && (
-          <nav className="hidden lg:flex items-center gap-1">
-            <Link
-              href="/chat"
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-600 transition-colors hover:bg-blue-50 hover:text-blue-700"
-            >
-              <MessageCircle size={16} />
-              Chat
-            </Link>
+          <nav className="hidden items-center gap-1 lg:flex">
+            {userRole === "student" && (
+              <>
+                <Link href="/chat" className={navLinkClass}>
+                  <MessageCircle size={16} />
+                  Chat
+                </Link>
 
-            <Link
-              href="/dashboard"
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-600 transition-colors hover:bg-blue-50 hover:text-blue-700"
-            >
-              <LayoutDashboard size={16} />
-              Overview
-            </Link>
+                <Link href="/student/dashboard" className={navLinkClass}>
+                  <LayoutDashboard size={16} />
+                  Dashboard
+                </Link>
 
-            <Link
-              href="/booking"
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-600 transition-colors hover:bg-blue-50 hover:text-blue-700"
-            >
-              <Calendar size={16} />
-              Booking
-            </Link>
+                <Link href="/booking" className={navLinkClass}>
+                  <Calendar size={16} />
+                  Booking
+                </Link>
 
-            <Link
-              href="/availability-management"
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-600 transition-colors hover:bg-blue-50 hover:text-blue-700"
-            >
-              <Clock size={16} />
-              Availability
-            </Link>
+                <Link href="/session-history" className={navLinkClass}>
+                  <History size={16} />
+                  History
+                </Link>
 
-            <Link
-              href="/session-history"
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-600 transition-colors hover:bg-blue-50 hover:text-blue-700"
-            >
-              <History size={16} />
-              History
-            </Link>
+                <Link href="/voice-call" className={navLinkClass}>
+                  <PhoneCall size={16} />
+                  Voice Call
+                </Link>
+              </>
+            )}
 
-            <Link
-              href="/voice-call"
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-600 transition-colors hover:bg-blue-50 hover:text-blue-700"
-            >
-              <PhoneCall size={16} />
-              Voice Call
-            </Link>
+            {userRole === "anonymous" && (
+              <Link href="/chat" className={navLinkClass}>
+                <MessageCircle size={16} />
+                Chat
+              </Link>
+            )}
 
+            {userRole === "counsellor" && (        //what see only to counsellor
+              <>
+                <Link href="/counsellor/dashboard" className={navLinkClass}>
+                  <LayoutDashboard size={16} />
+                  Counsellor Dashboard
+                </Link>
+
+                <Link href="/booking" className={navLinkClass}>
+                  <Calendar size={16} />
+                  Appointments
+                </Link>
+
+                <Link href="/availability" className={navLinkClass}>
+                  <Clock size={16} />
+                  Availability
+                </Link>
+              </>
+            )}
+
+            {isAdmin && (
+              <Link
+                href="/admin/dashboard"
+                onClick={() => setDropdownOpen(false)}
+                className={navLinkClass}
+              >
+                <Shield size={16} />
+                Admin Dashboard
+              </Link>
+            )}
           </nav>
         )}
       </div>
 
       <div className="flex items-center">
         {!isLoggedIn ? (
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 text-sm font-medium">
             <Link
               href="/features"
               className="text-gray-600 transition-colors hover:text-blue-600"
             >
               Features
+            </Link>
+
+            <Link
+              href="/#how-it-works"
+              className="hidden text-gray-600 transition-colors hover:text-blue-600 md:block"
+            >
+              How it works
+            </Link>
+
+            <Link
+              href="/#about"
+              className="hidden text-gray-600 transition-colors hover:text-blue-600 md:block"
+            >
+              About
             </Link>
 
             <Link
@@ -161,9 +228,15 @@ export default function Navbar() {
               onClick={() => setDropdownOpen(!dropdownOpen)}
               className="flex items-center gap-2 rounded-full border border-gray-200 px-3 py-2 text-gray-700 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
             >
-              <User size={18} />
+              {userRole === "admin" || userRole === "supervisor" ? (
+                <Shield size={18} />
+              ) : (
+                <User size={18} />
+              )}
 
-              <span className="hidden sm:block">Account</span>
+              <span className="hidden text-sm font-semibold sm:block">
+                {userName || "Account"}
+              </span>
 
               <ChevronDown
                 size={16}
@@ -174,32 +247,63 @@ export default function Navbar() {
             </button>
 
             {dropdownOpen && (
-              <div className="absolute right-0 mt-2 w-56 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg">
+              <div className="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg">
+                <div className="border-b border-gray-100 px-4 py-3">
+                  <p className="text-sm font-bold text-gray-800">
+                    {userName || "User"}
+                  </p>
+                  <p className="text-xs capitalize text-gray-500">
+                    {userRole}
+                  </p>
+                </div>
+
                 {isAdmin && (
                   <Link
                     href="/admin/dashboard"
                     onClick={() => setDropdownOpen(false)}
-                    className="flex items-center gap-2 px-4 py-3 hover:bg-gray-50"
+                    className="flex items-center gap-2 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700"
                   >
                     <Shield size={16} />
                     Admin Dashboard
                   </Link>
                 )}
 
-                {role === "counsellor" && (
+                {userRole === "counsellor" && (
+                  <>
+                    <Link
+                      href="/counsellor/dashboard"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex items-center gap-2 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700"
+                    >
+                      <LayoutDashboard size={16} />
+                      Counsellor Dashboard
+                    </Link>
+
+                    <Link
+                      href="/availability"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex items-center gap-2 px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-700"
+                    >
+                      <Clock size={16} />
+                      Availability
+                    </Link>
+                  </>
+                )}
+
+                {userRole === "anonymous" && (
                   <Link
-                    href="/counsellor/dashboard"
+                    href="/login"
                     onClick={() => setDropdownOpen(false)}
-                    className="flex items-center gap-2 px-4 py-3 hover:bg-gray-50"
+                    className="flex items-center gap-2 px-4 py-3 text-blue-700 hover:bg-blue-50"
                   >
-                    <LayoutDashboard size={16} />
-                    Counsellor Portal
+                    <User size={16} />
+                    Sign In
                   </Link>
                 )}
 
                 <button
                   onClick={handleLogout}
-                  className="w-full flex items-center gap-2 px-4 py-3 text-red-600 hover:bg-red-50"
+                  className="flex w-full items-center gap-2 px-4 py-3 text-left text-red-600 hover:bg-red-50"
                 >
                   <LogOut size={16} />
                   Logout

@@ -12,22 +12,36 @@ import {
 import { API_BASE_URL } from "@/services/api";
 import socket, { joinAdminRoom } from "@/services/socket";
 import AuthGuard from "@/components/AuthGuard";
-import RiskOverviewPanel from "@/components/RiskOverviewPanel";
-import { Users, UserCheck, AlertTriangle, CheckCircle } from "lucide-react";
+import {
+  Users,
+  UserCheck,
+  AlertTriangle,
+  ShieldCheck,
+  UserX,
+  CheckCircle,
+  FileText,
+} from "lucide-react";
 
-function AdminDashboardContent() {
+export default function AdminDashboardPage() {
   const [analytics, setAnalytics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [studentFilter, setStudentFilter] = useState<"all" | "registered" | "anonymous">("all");
-  
+
+  const [studentFilter, setStudentFilter] = useState<
+    "all" | "registered" | "anonymous"
+  >("all");
+  const [studentSearch, setStudentSearch] = useState("");
+
+  const [escalations, setEscalations] = useState<any[]>([]);
+
   useEffect(() => {
     const token = localStorage.getItem("token");
     fetch(`${API_BASE_URL}/api/admin/analytics`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(async (res) => {
-        if (!res.ok) throw new Error("Failed to fetch analytics or unauthorized.");
+        if (!res.ok)
+          throw new Error("Failed to fetch analytics or unauthorized.");
         return res.json();
       })
       .then((data) => {
@@ -45,30 +59,76 @@ function AdminDashboardContent() {
       window.location.reload();
     };
 
+    const handleEscalation = (data: any) => {
+      setEscalations((prev) => [data, ...prev]);
+    };
+
+    // Join the admin Socket.IO room
     joinAdminRoom();
+
+    // Listen for dashboard updates
     socket.on("usersUpdated", handleUsersUpdated);
+
+    // Listen for unattended emergency escalations
+    socket.on("unattendedEmergencyEscalation", handleEscalation);
 
     return () => {
       socket.off("usersUpdated", handleUsersUpdated);
+      socket.off("unattendedEmergencyEscalation", handleEscalation);
     };
   }, []);
 
-  const handleVerifyCounsellor = async (counsellorId: number) => {
+  const handleVerifyCounsellor = async (
+    counsellorId: number,
+    verificationStatus: "approved" | "rejected",
+  ) => {
     const token = localStorage.getItem("token");
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/counsellors/${counsellorId}/verify`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+      const res = await fetch(
+        `${API_BASE_URL}/api/admin/counsellors/${counsellorId}/verify`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ verification_status: verificationStatus }),
         },
-        body: JSON.stringify({ verification_status: "approved" }),
-      });
+      );
       if (!res.ok) throw new Error("Failed to update counsellor status");
-      alert("Counsellor verified successfully!");
+      alert(
+        verificationStatus === "approved"
+          ? "Counsellor approved successfully!"
+          : "Counsellor rejected successfully!",
+      );
       window.location.reload(); // Refresh data
     } catch (err) {
       alert("Could not complete verification.");
+    }
+  };
+
+  const handleToggleSuspension = async (student: any) => {
+    const token = localStorage.getItem("token");
+    const isSuspended =
+      student.is_suspended === true || student.status === "Suspended";
+
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/admin/users/${student.id}/suspend`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ is_suspended: !isSuspended }),
+        },
+      );
+
+      if (!res.ok) throw new Error("Failed to update user suspension");
+      window.location.reload();
+    } catch (err) {
+      alert("Could not update user suspension.");
     }
   };
 
@@ -106,24 +166,76 @@ function AdminDashboardContent() {
       </div>
     );
 
-  const studentsList = analytics?.students || [];
+  // Mock / dynamic data fallback for table mapping if backend arrays are empty
+  const studentsList = analytics?.students || [
+    {
+      id: 1,
+      name: "Thishan Bandara",
+      email: "thishan@pdn.ac.lk",
+      type: "registered",
+      status: "Active",
+    },
+    {
+      id: 2,
+      name: "Anonymous-User-#402",
+      email: "hidden@anonymous.local",
+      type: "anonymous",
+      status: "Active",
+    },
+    {
+      id: 3,
+      name: "Uvindu Shamilka",
+      email: "uvindu@pdn.ac.lk",
+      type: "registered",
+      status: "Suspended",
+    },
+  ];
 
-  const counsellorsList = analytics?.counsellors || [];
+  const counsellorsList = analytics?.counsellors || [
+    {
+      id: 101,
+      name: "Dr. Samantha Perera",
+      email: "samantha.p@peradeniya.ac.lk",
+      department: "Mental Health & Wellness",
+      verification_status: "pending",
+    },
+    {
+      id: 102,
+      name: "Dr. W.M.H.U Wijethunga",
+      email: "wijethunga@pdn.ac.lk",
+      department: "Psychological Support",
+      verification_status: "verified",
+    },
+  ];
 
   const filteredStudents = studentsList.filter((student: any) => {
+    const searchTerm = studentSearch.trim().toLowerCase();
+    const matchesSearch =
+      !searchTerm ||
+      [student.name, student.email, student.id]
+        .join(" ")
+        .toLowerCase()
+        .includes(searchTerm);
+
+    if (!matchesSearch) return false;
     if (studentFilter === "registered") return student.type === "registered";
     if (studentFilter === "anonymous") return student.type === "anonymous";
     return true;
   });
 
   return (
-    <div className="p-8 md:p-12 space-y-8 bg-gray-50 text-gray-900 min-h-screen font-sans">
-      
+    <AuthGuard allowedRoles={["admin", "supervisor"]}>
+      <div className="p-8 md:p-12 space-y-8 bg-gray-50 text-gray-900 min-h-screen font-sans">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight">Admin Oversight & Monitoring</h1>
-          <p className="text-gray-500 text-sm mt-1">Manage user accounts, verify professionals, and generate compliance audit reports.</p>
+          <h1 className="text-3xl font-extrabold tracking-tight">
+            Admin Oversight & Monitoring
+          </h1>
+          <p className="text-gray-500 text-sm mt-1">
+            Manage user accounts, verify professionals, and generate compliance
+            audit reports.
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -141,19 +253,58 @@ function AdminDashboardContent() {
         </div>
       </div>
 
+      {/* Unattended Emergency Escalation Alerts */}
+      {escalations.length > 0 && (
+        <div className="p-4 bg-rose-50 border-2 border-rose-600 rounded-2xl space-y-3">
+          <h3 className="text-rose-800 font-extrabold text-sm uppercase tracking-wider flex items-center gap-2">
+            <AlertTriangle size={18} />
+            Unattended Crisis Escalation (Zero Counsellors Available)
+          </h3>
+
+          {escalations.map((esc, idx) => (
+            <div
+              key={esc.emergencyId || idx}
+              className="text-sm text-rose-900 flex flex-col md:flex-row md:justify-between md:items-center gap-2 bg-white p-3 rounded-xl border border-rose-200"
+            >
+              <span>
+                <strong>Emergency #{esc.emergencyId}</strong> (Student ID:{" "}
+                {esc.studentId}) — Severity:{" "}
+                <strong>{esc.severityScore}</strong>: {esc.description}
+              </span>
+
+              <span className="text-xs text-gray-500 whitespace-nowrap">
+                {new Date(esc.timestamp).toLocaleTimeString()}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="p-6 bg-white border border-gray-100 rounded-2xl shadow-sm">
-          <p className="text-gray-500 text-sm font-semibold uppercase tracking-wider">Total Students & Anonymous</p>
-          <h3 className="text-4xl font-extrabold mt-3 text-gray-900">{analytics?.stats?.totalStudents || studentsList.length}</h3>
+          <p className="text-gray-500 text-sm font-semibold uppercase tracking-wider">
+            Total Students & Anonymous
+          </p>
+          <h3 className="text-4xl font-extrabold mt-3 text-gray-900">
+            {analytics?.stats?.totalStudents || studentsList.length}
+          </h3>
         </div>
         <div className="p-6 bg-white border border-gray-100 rounded-2xl shadow-sm">
-          <p className="text-gray-500 text-sm font-semibold uppercase tracking-wider">Active Counsellors</p>
-          <h3 className="text-4xl font-extrabold mt-3 text-gray-900">{analytics?.stats?.totalCounsellors || counsellorsList.length}</h3>
+          <p className="text-gray-500 text-sm font-semibold uppercase tracking-wider">
+            Active Counsellors
+          </p>
+          <h3 className="text-4xl font-extrabold mt-3 text-gray-900">
+            {analytics?.stats?.totalCounsellors || counsellorsList.length}
+          </h3>
         </div>
         <div className="p-6 bg-white border border-gray-100 rounded-2xl shadow-sm">
-          <p className="text-gray-500 text-sm font-semibold uppercase tracking-wider">Pending Crisis Alerts</p>
-          <h3 className="text-4xl font-extrabold mt-3 text-rose-600">{analytics?.stats?.activeEmergencies || 0}</h3>
+          <p className="text-gray-500 text-sm font-semibold uppercase tracking-wider">
+            Pending Crisis Alerts
+          </p>
+          <h3 className="text-4xl font-extrabold mt-3 text-rose-600">
+            {analytics?.stats?.activeEmergencies || 0}
+          </h3>
         </div>
       </div>
 
@@ -161,7 +312,8 @@ function AdminDashboardContent() {
       <div className="p-6 bg-white border border-gray-100 rounded-2xl shadow-sm space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-            <Users size={20} className="text-blue-600" /> Student Account Directory
+            <Users size={20} className="text-blue-600" /> Student Account
+            Directory
           </h2>
           {/* Filter Tabs */}
           <div className="flex bg-gray-100 p-1 rounded-xl text-xs font-bold">
@@ -185,6 +337,14 @@ function AdminDashboardContent() {
             </button>
           </div>
         </div>
+        <input
+          type="search"
+          value={studentSearch}
+          onChange={(event) => setStudentSearch(event.target.value)}
+          placeholder="Search by name, email, or user ID"
+          className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+          aria-label="Search users"
+        />
 
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -194,12 +354,18 @@ function AdminDashboardContent() {
                 <th className="pb-3 px-4">Email Address</th>
                 <th className="pb-3 px-4">Account Type</th>
                 <th className="pb-3 px-4">Status</th>
+                <th className="pb-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50 text-sm">
               {filteredStudents.map((student: any, idx: number) => (
-                <tr key={student.id || idx} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="py-4 px-4 font-bold text-gray-900">{student.name}</td>
+                <tr
+                  key={student.id || idx}
+                  className="hover:bg-gray-50/50 transition-colors"
+                >
+                  <td className="py-4 px-4 font-bold text-gray-900">
+                    {student.name}
+                  </td>
                   <td className="py-4 px-4 text-gray-500">{student.email}</td>
                   <td className="py-4 px-4">
                     {student.type === "anonymous" ? (
@@ -213,8 +379,36 @@ function AdminDashboardContent() {
                     )}
                   </td>
                   <td className="py-4 px-4 font-semibold">
-                    <span className={`inline-block w-2 h-2 rounded-full mr-2 ${student.status === "Suspended" ? "bg-rose-500" : "bg-emerald-500"}`}></span>
-                    {student.status || "Active"}
+                    {(() => {
+                      const isSuspended =
+                        student.is_suspended === true ||
+                        student.status === "Suspended";
+
+                      return (
+                        <>
+                    <span
+                      className={`inline-block w-2 h-2 rounded-full mr-2 ${isSuspended ? "bg-rose-500" : "bg-emerald-500"}`}
+                    ></span>
+                          {isSuspended ? "Suspended" : "Active"}
+                        </>
+                      );
+                    })()}
+                  </td>
+                  <td className="py-4 px-4 text-right">
+                    <button
+                      onClick={() => handleToggleSuspension(student)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                        student.is_suspended === true ||
+                        student.status === "Suspended"
+                          ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                          : "bg-rose-600 hover:bg-rose-700 text-white"
+                      }`}
+                    >
+                      {student.is_suspended === true ||
+                      student.status === "Suspended"
+                        ? "Reactivate"
+                        : "Suspend"}
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -226,7 +420,8 @@ function AdminDashboardContent() {
       {/* 2. Dedicated Counsellor Verification & Management Table (WBS 7.2) */}
       <div className="p-6 bg-white border border-gray-100 rounded-2xl shadow-sm space-y-6">
         <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-          <UserCheck size={20} className="text-indigo-600" /> Professional Counsellor Roster & Verification Queue
+          <UserCheck size={20} className="text-indigo-600" /> Professional
+          Counsellor Roster & Verification Queue
         </h2>
 
         <div className="overflow-x-auto">
@@ -242,12 +437,23 @@ function AdminDashboardContent() {
             </thead>
             <tbody className="divide-y divide-gray-50 text-sm">
               {counsellorsList.map((counsellor: any, idx: number) => (
-                <tr key={counsellor.id || idx} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="py-4 px-4 font-bold text-gray-900">{counsellor.name}</td>
-                  <td className="py-4 px-4 text-gray-500">{counsellor.email}</td>
-                  <td className="py-4 px-4 text-gray-600">{counsellor.department || "General Counselling"}</td>
+                <tr
+                  key={counsellor.id || idx}
+                  className="hover:bg-gray-50/50 transition-colors"
+                >
+                  <td className="py-4 px-4 font-bold text-gray-900">
+                    {counsellor.name}
+                  </td>
+                  <td className="py-4 px-4 text-gray-500">
+                    {counsellor.email}
+                  </td>
+                  <td className="py-4 px-4 text-gray-600">
+                    {counsellor.department || "General Counselling"}
+                  </td>
                   <td className="py-4 px-4">
-                    {counsellor.verification_status === "approved" || counsellor.verification_status === "verified" || counsellor.verification_status === "Active" ? (
+                    {counsellor.verification_status === "verified" ||
+                    counsellor.verification_status === "approved" ||
+                    counsellor.verification_status === "Active" ? (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                         <CheckCircle size={12} /> Verified
                       </span>
@@ -258,20 +464,42 @@ function AdminDashboardContent() {
                     )}
                   </td>
                   <td className="py-4 px-4 text-right space-x-2">
-                    {counsellor.verification_status !== "approved" && counsellor.verification_status !== "verified" && (
+                    {!["verified", "approved", "Active"].includes(
+                      counsellor.verification_status,
+                    ) && (
                       <button
-                        onClick={() => handleVerifyCounsellor(counsellor.id)}
+                        onClick={() =>
+                          handleVerifyCounsellor(counsellor.user_id, "approved")
+                        }
                         className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-all"
                       >
-                        Verify License
+                        Approve
                       </button>
                     )}
-                    <button
-                      onClick={() => alert(`Reviewing credentials for ${counsellor.name}`)}
-                      className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-bold transition-all"
-                    >
-                      View Credentials
-                    </button>
+                    {!["rejected"].includes(counsellor.verification_status) && (
+                      <button
+                        onClick={() =>
+                          handleVerifyCounsellor(counsellor.user_id, "rejected")
+                        }
+                        className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition-all"
+                      >
+                        Reject
+                      </button>
+                    )}
+                    {counsellor.document_url ? (
+                      <a
+                        href={counsellor.document_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-block px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-bold transition-all"
+                      >
+                        View Credentials
+                      </a>
+                    ) : (
+                      <span className="inline-block px-3 py-1.5 text-xs text-gray-400">
+                        No credentials
+                      </span>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -280,16 +508,26 @@ function AdminDashboardContent() {
         </div>
       </div>
 
-      {/* Mental Health Screening, Operational Risk Overview, Alerts & Counsellor Assignments */}
-      <RiskOverviewPanel isAdmin={true} />
-
       {/* Severity Trends Chart (WBS 7.3) */}
       <div className="p-6 bg-white border border-gray-100 rounded-2xl shadow-sm">
-        <h2 className="text-xl font-bold mb-6 text-gray-800">Emergency Incident Severity Trends</h2>
+        <h2 className="text-xl font-bold mb-6 text-gray-800">
+          Emergency Incident Severity Trends
+        </h2>
         <div className="h-80 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={analytics?.charts?.severityStats || [{ severity_score: 'High', count: 4 }, { severity_score: 'Critical', count: 2 }]}>
-              <XAxis dataKey="severity_score" stroke="#9ca3af" tick={{ fill: "#4b5563" }} />
+            <BarChart
+              data={
+                analytics?.charts?.severityStats || [
+                  { severity_score: "High", count: 4 },
+                  { severity_score: "Critical", count: 2 },
+                ]
+              }
+            >
+              <XAxis
+                dataKey="severity_score"
+                stroke="#9ca3af"
+                tick={{ fill: "#4b5563" }}
+              />
               <YAxis stroke="#9ca3af" tick={{ fill: "#4b5563" }} />
               <Tooltip
                 contentStyle={{
@@ -304,15 +542,7 @@ function AdminDashboardContent() {
           </ResponsiveContainer>
         </div>
       </div>
-
-    </div>
-  );
-}
-
-export default function AdminDashboardPage() {
-  return (
-    <AuthGuard allowedRoles={["admin", "supervisor"]}>
-      <AdminDashboardContent />
+      </div>
     </AuthGuard>
   );
 }

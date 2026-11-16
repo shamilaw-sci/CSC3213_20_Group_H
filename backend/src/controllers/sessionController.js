@@ -1,4 +1,5 @@
 import db from "../config/db.js";
+import { ensureBookingTables } from "./counsellorController.js";
 
 /*
 |--------------------------------------------------------------------------
@@ -8,10 +9,13 @@ import db from "../config/db.js";
 */
 export const getAllAppointments = async (req, res) => {
   try {
+    await ensureBookingTables();
+
     const [rows] = await db.query(`
       SELECT
         a.id,
         a.student_id,
+        c.name,
         c.name AS counsellor_name,
         c.specialization,
         s.available_date,
@@ -47,6 +51,8 @@ export const getStudentSessions = async (
   res
 ) => {
   try {
+    await ensureBookingTables();
+
     const { studentId } = req.params;
 
     const [rows] = await db.query(
@@ -54,6 +60,7 @@ export const getStudentSessions = async (
       SELECT
         a.id,
         a.booked_at,
+        c.name,
         c.name AS counsellor_name,
         c.specialization,
         s.available_date,

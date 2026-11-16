@@ -39,7 +39,8 @@ export const getAnalyticsDashboard = async (req, res) => {
              ORDER BY created_at DESC`
         );
         const [counsellors] = await db.query(
-            `SELECT c.id, c.name, u.email, c.specialization AS department,
+            `SELECT c.id, c.user_id, c.name, u.email, cp.document_url,
+                    c.specialization AS department,
                     COALESCE(cp.verification_status, 'pending') AS verification_status
              FROM counsellors c
              LEFT JOIN users u ON u.id = c.user_id
@@ -93,56 +94,82 @@ export const updateUserStatus = async (req, res) => {
     }
 };
 
-// Counsellor Verification Workflow with Audit Logging
-export const verifyCounsellor = async (req, res) => {
-    const { counsellorId } = req.params;
-    const verification_status = req.body?.verification_status || 'approved';
-    const adminId = req.user?.id;
+export const suspendUser = async (req, res) => {
+    const { userId } = req.params;
+    const { is_suspended } = req.body ?? {};
 
-    if (!['pending', 'approved', 'rejected'].includes(verification_status)) {
-        return res.status(400).json({ error: 'Invalid verification_status value.' });
+    if (typeof is_suspended !== 'boolean') {
+        return res.status(400).json({
+            error: 'is_suspended must be a boolean.'
+        });
     }
 
     try {
-        const [counsellorRows] = await db.query(
-            `SELECT id, user_id FROM counsellors WHERE id = ? LIMIT 1`,
-            [counsellorId]
+        const [result] = await db.query(
+            'UPDATE users SET is_suspended = ? WHERE id = ?',
+            [is_suspended, userId]
         );
-        const targetUserId = counsellorRows[0]?.user_id;
 
-        if (targetUserId) {
-            const [existing] = await db.query(
-                `SELECT id FROM counsellor_profiles WHERE user_id = ? LIMIT 1`,
-                [targetUserId]
-            );
-            if (existing.length > 0) {
-                await db.query(
-                    `UPDATE counsellor_profiles SET verification_status = ? WHERE user_id = ?`,
-                    [verification_status, targetUserId]
-                );
-            } else {
-                await db.query(
-                    `INSERT INTO counsellor_profiles (user_id, verification_status, is_available) VALUES (?, ?, TRUE)`,
-                    [targetUserId, verification_status]
-                );
-            }
-        } else {
-            await db.query(
-                `UPDATE counsellor_profiles SET verification_status = ? WHERE id = ?`,
-                [verification_status, counsellorId]
-            );
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'User not found.' });
         }
 
         global.io?.to('admin-room').emit('usersUpdated');
 
+        return res.status(200).json({
+            success: true,
+            is_suspended,
+            message: is_suspended
+                ? 'User suspended successfully.'
+                : 'User reactivated successfully.'
+        });
+    } catch (error) {
+        console.error('User suspension update error:', error);
+        return res.status(500).json({ error: 'Error updating user suspension.' });
+    }
+};
+
+// Counsellor Verification Workflow with Audit Logging
+export const verifyCounsellor = async (req, res) => {
+    const { counsellorId } = req.params;
+    const { verification_status } = req.body; 
+    const adminId = req.user?.id;
+
+    if (!['approved', 'rejected', 'pending'].includes(verification_status)) {
+        return res.status(400).json({
+            error: 'Invalid counsellor verification status.'
+        });
+    }
+
+    try {
+        await db.query(
+            `UPDATE counsellor_profiles SET verification_status = ? WHERE user_id = ?`,
+            [verification_status, counsellorId]
+        );
+
+        global.io?.to('admin-room').emit('usersUpdated');
+
         // NF-SEC-1.6 Audit trail logging
-        console.log(`[AUDIT] Admin (ID: ${adminId}) changed counsellor ${counsellorId} status to ${verification_status}`);
+        console.log(`[AUDIT] Admin (ID: ${adminId}) changed counsellor profile ${counsellorId} status to ${verification_status}`);
 
         return res.status(200).json({ success: true, message: `Counsellor status updated to ${verification_status}` });
     } catch (error) {
         console.error('Counsellor verification error:', error);
         return res.status(500).json({ error: 'Failed to update counsellor workflow.' });
     }
+};
+
+const logReportExport = async (adminId, format) => {
+    await db.query(
+        `INSERT INTO system_reports (generated_by, report_type, title, file_path)
+         VALUES (?, ?, ?, ?)`,
+        [
+            adminId,
+            format.toUpperCase(),
+            'CareBridge Admin Report',
+            `carebridge-admin-report.${format}`
+        ]
+    );
 };
 
 export const getAdminReport = async (req, res) => {
@@ -181,6 +208,8 @@ export const getAdminReport = async (req, res) => {
                 .map((row) => row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(','))
                 .join('\n');
 
+            await logReportExport(req.user?.id, normalizedFormat);
+
             res.setHeader('Content-Type', 'text/csv; charset=utf-8');
             res.setHeader('Content-Disposition', 'attachment; filename="carebridge-admin-report.csv"');
             return res.status(200).send(csv);
@@ -191,11 +220,21 @@ export const getAdminReport = async (req, res) => {
         const chunks = [];
 
         doc.on('data', (chunk) => chunks.push(chunk));
-        doc.on('end', () => {
-            const pdfBuffer = Buffer.concat(chunks);
-            res.setHeader('Content-Type', 'application/pdf');
-            res.setHeader('Content-Disposition', 'attachment; filename="carebridge-admin-report.pdf"');
-            return res.status(200).send(pdfBuffer);
+        doc.on('end', async () => {
+            try {
+                await logReportExport(req.user?.id, normalizedFormat);
+
+                const pdfBuffer = Buffer.concat(chunks);
+                res.setHeader('Content-Type', 'application/pdf');
+                res.setHeader('Content-Disposition', 'attachment; filename="carebridge-admin-report.pdf"');
+                return res.status(200).send(pdfBuffer);
+            } catch (error) {
+                console.error('Admin report audit logging error:', error);
+                return res.status(500).json({
+                    success: false,
+                    error: 'Failed to log generated report.'
+                });
+            }
         });
 
         doc.fontSize(22).text('CareBridge Admin Report', { align: 'center' });

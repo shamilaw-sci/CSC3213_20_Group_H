@@ -1,21 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { API_BASE_URL } from "@/services/api";
 
-interface Counsellor {
+interface Counsellor {           //Load Councellors 
   id: number;
   name: string;
   specialization: string;
 }
 
-interface Slot {
+interface Slot {                     //Load Availability
   id: number;
   available_date: string;
   start_time: string;
   end_time: string;
 }
 
-interface Appointment {
+interface Appointment {              //Book Appointment
   id: number;
   counsellor_name: string;
   specialization: string;
@@ -43,7 +44,7 @@ export default function AppointmentBooking() {
 
   const fetchCounsellors = async () => {
     try {
-      const res = await fetch("http://localhost:5050/api/counsellors");
+      const res = await fetch("http://localhost:6001/api/counsellors");
 
       const data = await res.json();
 
@@ -63,7 +64,7 @@ export default function AppointmentBooking() {
 
       if (!user.id) return;
 
-      const res = await fetch(`http://localhost:5050/api/sessions/${user.id}`);
+      const res = await fetch(`http://localhost:6001/api/sessions/${user.id}`);
 
       const data = await res.json();
 
@@ -77,12 +78,18 @@ export default function AppointmentBooking() {
     }
   };
 
-  const loadSlots = async (counsellorId: string) => {
+  const loadSlots = async (counsellorId: string) => {             //Load Counsellor's available slots based on the selected counsellor
     try {
       setSelectedCounsellor(counsellorId);
+      setSelectedSlot("");
+
+      if (!counsellorId) {
+        setSlots([]);
+        return;
+      }
 
       const res = await fetch(
-        `http://localhost:5050/api/counsellors/${counsellorId}/availability`,
+        `http://localhost:6001/api/counsellors/${counsellorId}/availability`,
       );
 
       const data = await res.json();
@@ -107,7 +114,7 @@ export default function AppointmentBooking() {
       }
 
       const response = await fetch(
-        "http://localhost:5050/api/counsellors/book",
+        `${API_BASE_URL}/api/counsellors/book`,
         {
           method: "POST",
           headers: {

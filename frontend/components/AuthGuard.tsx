@@ -8,21 +8,6 @@ interface AuthGuardProps {
   allowedRoles?: string[];
 }
 
-function isTokenExpired(token: string): boolean {
-  try {
-    const parts = token.split(".");
-    if (parts.length !== 3) return true;
-    const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const payload = JSON.parse(atob(base64));
-    if (typeof payload.exp === "number" && payload.exp * 1000 <= Date.now()) {
-      return true;
-    }
-    return false;
-  } catch {
-    return true;
-  }
-}
-
 export default function AuthGuard({
   children,
   allowedRoles,
@@ -34,31 +19,32 @@ export default function AuthGuard({
     const token = localStorage.getItem("token");
     const userData = localStorage.getItem("user");
 
-    if (!token || !userData || isTokenExpired(token)) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      localStorage.removeItem("role");
-      window.dispatchEvent(new Event("authChange"));
+    if (!token || !userData) {
       router.replace("/login");
       return;
     }
 
     try {
       const user = JSON.parse(userData);
-      const userRole = String(user.role || "").toLowerCase();
-      const allowedLower = allowedRoles?.map((r) => r.toLowerCase());
 
-      if (allowedLower && !allowedLower.includes(userRole)) {
+      const userRole = String(user.role || "").toLowerCase();
+
+      const allowed =
+        !allowedRoles ||
+        allowedRoles.some(
+          (role) => role.toLowerCase() === userRole
+        );
+
+      if (!allowed) {
         router.replace("/dashboard");
         return;
       }
 
       setAuthorized(true);
-    } catch {
+    } catch (error) {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       localStorage.removeItem("role");
-      window.dispatchEvent(new Event("authChange"));
       router.replace("/login");
     }
   }, [router, allowedRoles]);
