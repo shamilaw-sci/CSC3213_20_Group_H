@@ -5,12 +5,24 @@ import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 // Keyed per authenticated user where available, falling back to IP.
 export const chatMessageLimiter = rateLimit({
   windowMs: 60 * 1000,
-  limit: 12,
+  limit: 20,
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) =>
     req.user?.id ? `user:${req.user.id}` : ipKeyGenerator(req.ip),
   message: {
     error: "You're sending messages too quickly. Please wait a moment and try again.",
+  },
+});
+
+export const voiceSessionLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  limit: 15,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) =>
+    req.user?.id ? `voice:${req.user.id}` : ipKeyGenerator(req.ip),
+  message: {
+    error: "Too many voice sessions started recently. Please wait a few minutes.",
   },
 });

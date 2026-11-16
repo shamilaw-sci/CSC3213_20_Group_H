@@ -30,4 +30,18 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (typeof window !== "undefined" && error?.response?.status === 401) {
+      logout();
+      window.dispatchEvent(new Event("authChange"));
+      if (!["/login", "/register"].includes(window.location.pathname)) {
+        window.location.replace("/login");
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;

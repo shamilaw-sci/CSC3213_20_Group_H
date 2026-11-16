@@ -6,6 +6,9 @@ import { chatMessageLimiter } from "../middleware/rateLimiter.js";
 
 const router = express.Router();
 
+router.get("/conversations", verifyToken, chatController.getConversations);
+router.post("/conversations", verifyToken, chatController.startConversation);
+
 router.get("/", verifyToken, chatController.getHistory);
 router.post(
   "/",
