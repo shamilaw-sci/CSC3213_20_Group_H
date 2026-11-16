@@ -1,9 +1,10 @@
 import { Server } from "socket.io";
+import { ALLOWED_ORIGINS } from "./config.js";
 
 export const initializeSocket = (server) => {
   const io = new Server(server, {
     cors: {
-      origin: "http://localhost:3000",
+      origin: ALLOWED_ORIGINS,
       methods: ["GET", "POST"],
     },
   });

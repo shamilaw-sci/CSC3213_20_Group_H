@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import nodemailer from "nodemailer";
 
 import db from '../config/db.js';
+import { SECRET } from '../config.js';
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -52,20 +53,20 @@ export const register = async (req, res) => {
 
         const [result] = await db.query(
             'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
-            [name, email, hashedPassword, 'Student']
+            [name, email, hashedPassword, 'student']
         );
-
-        const secretKey = process.env.JWT_SECRET;
 
         const token = jwt.sign(
             {
                 id: result.insertId,
                 name: name,
-                role: 'Student'
+                role: 'student'
             },
-            secretKey,
-            { expiresIn: '1h' }
+            SECRET,
+            { expiresIn: '24h' }
         );
+
+        global.io?.to('admin-room').emit('usersUpdated');
 
         return res.status(201).json({
             message: 'Registration successful.',
@@ -73,7 +74,7 @@ export const register = async (req, res) => {
             user: {
                 id: result.insertId,
                 name: name,
-                role: 'Student'
+                role: 'student'
             }
         });
 
@@ -123,18 +124,18 @@ export const login = async (req, res) => {
             });
         }
 
-        const secretKey = process.env.JWT_SECRET;
+        const normalizedRole = String(user.role || '').toLowerCase();
 
         const payload = {
             id: user.userId,
             name: user.name,
-            role: user.role
+            role: normalizedRole
         };
 
         const token = jwt.sign(
             payload,
-            secretKey,
-            { expiresIn: '1h' }
+            SECRET,
+            { expiresIn: '24h' }
         );
 
         return res.status(200).json({
@@ -142,7 +143,7 @@ export const login = async (req, res) => {
             token,
             userId: user.userId,
             name: user.name,
-            role: user.role
+            role: normalizedRole
         });
 
     } catch (error) {
@@ -173,16 +174,14 @@ export const anonymousLogin = async (req, res) => {
             ]
         );
 
-        const secretKey = process.env.JWT_SECRET;
-
         const token = jwt.sign(
             {
                 id: result.insertId,
                 name: 'Anonymous User',
                 role: 'anonymous'
             },
-            secretKey,
-            { expiresIn: '1h' }
+            SECRET,
+            { expiresIn: '24h' }
         );
 
         res.status(201).json({

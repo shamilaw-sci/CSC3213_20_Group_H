@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { API_BASE_URL } from "@/services/api";
 
 export default function AvailabilityForm() {          
   const [slots, setSlots] = useState<any[]>([]);
@@ -18,7 +19,7 @@ export default function AvailabilityForm() {
   const loadSlots = async () => {                              //Loading existing availability slots
     try {
       const response = await fetch(   
-        "http://localhost:6001/api/availability"                   //fetch() sends an HTTP request to your Express backend.
+        `${API_BASE_URL}/api/availability`                   //fetch() sends an HTTP request to your Express backend.
       );                                                           //The backend receives this request and retrieves availability records from MySQL.
                                                                   
       const data = await response.json();
@@ -36,7 +37,7 @@ export default function AvailabilityForm() {
   const handleAddSlot = async () => {                           //Add Availability Slot
     try {
       const response = await fetch(
-        "http://localhost:6001/api/availability",
+        `${API_BASE_URL}/api/availability`,
         {
           method: "POST",
           headers: {
@@ -74,7 +75,7 @@ export default function AvailabilityForm() {
   const updateSlot = async () => {                           //Updating-PUT  an existing availability slot
     try {
       const response = await fetch(
-        `http://localhost:6001/api/availability/${editingId}`,
+        `${API_BASE_URL}/api/availability/${editingId}`,
         {
           method: "PUT",
           headers: {
@@ -115,7 +116,7 @@ export default function AvailabilityForm() {
 
     try {
       await fetch(
-        `http://localhost:6001/api/availability/${id}`,      //Send the DELETE reuest and delete
+        `${API_BASE_URL}/api/availability/${id}`,      //Send the DELETE reuest and delete
         {
           method: "DELETE",
         }

@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import session from "express-session";
 
 import passport from "./config/passport.js";
+import { ALLOWED_ORIGINS } from "./config.js";
 
 import authRoutes from "./routes/authRoutes.js";
 import emergencyRoutes from "./routes/emergencyRoutes.js";

@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import socket from "@/services/socket";
+import { API_BASE_URL } from "@/services/api";
 
 interface EmergencyRequest {
     id: number;
@@ -28,7 +29,7 @@ export default function EmergencyRequests() {
             const token = localStorage.getItem("token");
 
             const response = await fetch(
-                "http://localhost:6001/api/emergency/requests",
+                `${API_BASE_URL}/api/emergency/requests`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -72,7 +73,7 @@ export default function EmergencyRequests() {
             const token = localStorage.getItem("token");
 
             const response = await fetch(
-                `http://localhost:6001/api/emergency/${request.id}/accept`,
+                `${API_BASE_URL}/api/emergency/${request.id}/accept`,
                 {
                     method: "PUT",
                     headers: {
@@ -114,7 +115,7 @@ export default function EmergencyRequests() {
             const token = localStorage.getItem("token");
 
             const response = await fetch(
-                `http://localhost:6001/api/emergency/${id}/complete`,
+                `${API_BASE_URL}/api/emergency/${id}/complete`,
                 {
                     method: "PUT",
                     headers: {
@@ -143,7 +144,7 @@ export default function EmergencyRequests() {
             const token = localStorage.getItem("token");
 
             const response = await fetch(
-                `http://localhost:6001/api/emergency/${id}/cancel`,
+                `${API_BASE_URL}/api/emergency/${id}/cancel`,
                 {
                     method: "PUT",
                     headers: {
