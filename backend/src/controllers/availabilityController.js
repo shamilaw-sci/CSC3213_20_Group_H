@@ -36,7 +36,7 @@ export const createAvailability = async (
       endTime,
     } = req.body;
 
-    const [conflicts] = await db.query(
+    const [conflicts] = await db.query(             // to prevent confilict 
       `
       SELECT *
       FROM availability_slots

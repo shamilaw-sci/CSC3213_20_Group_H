@@ -3,20 +3,20 @@
 import { useEffect, useState } from "react";
 import { API_BASE_URL } from "@/services/api";
 
-interface Counsellor {
+interface Counsellor {           //Load Councellors 
   id: number;
   name: string;
   specialization: string;
 }
 
-interface Slot {
+interface Slot {                     //Load Availability
   id: number;
   available_date: string;
   start_time: string;
   end_time: string;
 }
 
-interface Appointment {
+interface Appointment {              //Book Appointment
   id: number;
   counsellor_name: string;
   specialization: string;
@@ -78,7 +78,7 @@ export default function AppointmentBooking() {
     }
   };
 
-  const loadSlots = async (counsellorId: string) => {
+  const loadSlots = async (counsellorId: string) => {             //Load Counsellor's available slots based on the selected counsellor
     try {
       setSelectedCounsellor(counsellorId);
       setSelectedSlot("");
