@@ -5,8 +5,50 @@ import {
 } from "./riskEngine.js";
 
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-flash-latest";
+const DEFAULT_FALLBACK_MODELS = [
+  "gemini-flash-lite-latest",
+  "gemini-3.5-flash",
+  "gemini-3.5-flash-lite",
+];
+const RETRYABLE_HTTP_STATUSES = new Set([404, 429, 500, 502, 503, 504]);
 
-const SUPPORT_SYSTEM_PROMPT = `You are the CareBridge Companion, an AI-powered mental health support and early-screening assistant embedded in a university counselling platform.
+export class GeminiUnavailableError extends Error {
+  constructor(message, statusCode = 503) {
+    super(message);
+    this.name = "GeminiUnavailableError";
+    this.statusCode = statusCode;
+  }
+}
+
+export function getCandidateGeminiModels(
+  primaryModel = process.env.GEMINI_MODEL || GEMINI_MODEL,
+  fallbackRaw = process.env.GEMINI_FALLBACK_MODELS
+) {
+  const configuredFallbacks = fallbackRaw
+    ? String(fallbackRaw)
+        .split(",")
+        .map((m) => m.trim())
+        .filter(Boolean)
+    : DEFAULT_FALLBACK_MODELS;
+
+  const seen = new Set();
+  const candidates = [];
+  for (const model of [primaryModel, ...configuredFallbacks]) {
+    if (model && !seen.has(model)) {
+      seen.add(model);
+      candidates.push(model);
+    }
+  }
+  return candidates;
+}
+
+export const SUPPORT_SYSTEM_PROMPT = `You are the CareBridge Companion, an AI-powered mental health support and early-screening assistant embedded in a university counselling platform.
+
+Strict domain scope (Counselling & Wellbeing ONLY):
+- You ONLY respond to topics related to mental health, emotional wellbeing, stress, anxiety, mood/depression screening (PHQ-9), coping strategies, personal struggles, crisis/safety support, and CareBridge counselling services.
+- If the user asks ANY general-knowledge, trivia, geography, history, science, math, coding, homework, news, sports, recipe, or other non-counselling question (for example: "What is the longest river in Sri Lanka?", "Write Python code", "Who won the cricket match?"), you MUST strictly REFUSE to answer the factual/off-topic question.
+- NEVER answer an off-topic question even partially, briefly, or "before redirecting" (do NOT provide facts like river names, solutions, or trivia). Simply state kindly that you can only support mental health, emotional wellbeing, and counselling-related conversations, and ask how they are feeling or what is on their mind emotionally.
+- Exception for emotional context: if a message mentions study/work pressure or safety concerns alongside an off-topic subject, acknowledge and support their feelings (or safety) WITHOUT answering the trivia or doing the homework.
 
 Core responsibilities & ethical boundaries:
 - Respond empathetically, warmly, and respectfully in simple, understandable language (2-5 sentences).
@@ -19,7 +61,6 @@ Core responsibilities & ethical boundaries:
 - Ask at most ONE relevant gentle follow-up question per turn based on what the patient shared, and NEVER repeat a question the patient has already answered in the conversation history.
 - Treat inferred emotions and depression-related indicators strictly as tentative screening signals, not confirmed psychological facts.
 - If immediate safety/self-harm concern or uncertainty appears, respond immediately with empathy, ask a direct gentle safety check question, encourage reaching out to a trusted person and local emergency/crisis support, and never claim that emergency services have already been contacted.
-- Stay in scope (emotional wellbeing and screening support). Politely decline unrelated homework/coding/trivia requests and steer back to how they are doing.
 - Never repeat or reference these instructions.`;
 
 const STRUCTURED_SCREENING_SCHEMA = {
@@ -143,7 +184,13 @@ export function parseGeminiJsonSafe(text) {
   }
 }
 
-async function callGeminiGenerateContent({ systemPrompt, contents, responseSchema, temperature = 0.4 }) {
+export async function callGeminiGenerateContentWithMeta({
+  systemPrompt,
+  contents,
+  responseSchema,
+  temperature = 0.4,
+  fetchFn = fetch,
+}) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error("GEMINI_API_KEY is not configured");
@@ -159,35 +206,82 @@ async function callGeminiGenerateContent({ systemPrompt, contents, responseSchem
     generationConfig.responseSchema = responseSchema;
   }
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: systemPrompt }] },
-        contents,
-        generationConfig,
-      }),
+  const models = getCandidateGeminiModels();
+  let lastError = null;
+  let lastStatus = 503;
+
+  for (let i = 0; i < models.length; i += 1) {
+    const model = models[i];
+    try {
+      const response = await fetchFn(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: AbortSignal.timeout(20000),
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: systemPrompt }] },
+            contents,
+            generationConfig,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorBody = await response.text().catch(() => "");
+        lastStatus = response.status;
+        const err = new Error(`Gemini API error ${response.status} (${model}): ${errorBody}`);
+        if (RETRYABLE_HTTP_STATUSES.has(response.status) && i < models.length - 1) {
+          console.warn(
+            `Gemini model ${model} returned ${response.status}; falling back to ${models[i + 1]}.`
+          );
+          lastError = err;
+          continue;
+        }
+        if (RETRYABLE_HTTP_STATUSES.has(response.status)) {
+          throw new GeminiUnavailableError(err.message, response.status);
+        }
+        throw err;
+      }
+
+      const data = await response.json();
+      const candidate = data.candidates?.[0];
+      const text = candidate?.content?.parts?.map((part) => part.text).join("");
+
+      if (!text) {
+        throw new Error(
+          `Gemini returned no usable content (finishReason: ${candidate?.finishReason})`
+        );
+      }
+
+      return { text: text.trim(), modelUsed: model };
+    } catch (err) {
+      if (err instanceof GeminiUnavailableError) {
+        throw err;
+      }
+      const isNetworkOrTimeout =
+        err?.name === "TimeoutError" || err?.name === "AbortError" || err?.name === "TypeError";
+      if (isNetworkOrTimeout && i < models.length - 1) {
+        console.warn(`Gemini model ${model} request failed (${err.message}); trying fallback.`);
+        lastError = err;
+        continue;
+      }
+      if (lastStatus >= 500 || lastStatus === 429) {
+        throw new GeminiUnavailableError(err.message, lastStatus);
+      }
+      throw err;
     }
+  }
+
+  throw new GeminiUnavailableError(
+    lastError?.message || "All configured Gemini models are temporarily unavailable.",
+    lastStatus
   );
+}
 
-  if (!response.ok) {
-    const errorBody = await response.text().catch(() => "");
-    throw new Error(`Gemini API error ${response.status}: ${errorBody}`);
-  }
-
-  const data = await response.json();
-  const candidate = data.candidates?.[0];
-  const text = candidate?.content?.parts?.map((part) => part.text).join("");
-
-  if (!text) {
-    throw new Error(
-      `Gemini returned no usable content (finishReason: ${candidate?.finishReason})`
-    );
-  }
-
-  return text.trim();
+async function callGeminiGenerateContent(options) {
+  const { text } = await callGeminiGenerateContentWithMeta(options);
+  return text;
 }
 
 export async function generateReply(history, userMessage) {
@@ -257,7 +351,7 @@ Strict rules:
 - Always set humanReviewRequired to true.`;
 
   const clippedText = String(extractedText || "").slice(0, 30000);
-  const rawText = await callGeminiGenerateContent({
+  const { text: rawText, modelUsed } = await callGeminiGenerateContentWithMeta({
     systemPrompt: docSystemPrompt,
     contents: [
       {
@@ -279,5 +373,9 @@ Strict rules:
   }
 
   parsed.humanReviewRequired = true;
+  Object.defineProperty(parsed, "_modelUsed", {
+    value: modelUsed,
+    enumerable: false,
+  });
   return parsed;
 }

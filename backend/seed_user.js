@@ -84,15 +84,34 @@ async function seed() {
 
         await pool.query(
           `
-    INSERT INTO counsellor_profiles
-      (user_id, verification_status, is_available)
-    VALUES (?, 'approved', TRUE)
-    ON DUPLICATE KEY UPDATE
-      verification_status = 'approved',
-      is_available = TRUE
-    `,
+          INSERT INTO counsellors (user_id, name, specialization)
+          VALUES (?, ?, 'General Mental Health Counselling')
+          ON DUPLICATE KEY UPDATE
+            name = VALUES(name)
+          `,
+          [userId, user.name]
+        );
+
+        const [existingProfiles] = await pool.query(
+          "SELECT id FROM counsellor_profiles WHERE user_id = ? LIMIT 1",
           [userId]
         );
+
+        if (existingProfiles.length > 0) {
+          await pool.query(
+            `UPDATE counsellor_profiles
+             SET verification_status = 'approved', is_available = TRUE
+             WHERE user_id = ?`,
+            [userId]
+          );
+        } else {
+          await pool.query(
+            `INSERT INTO counsellor_profiles
+              (user_id, verification_status, is_available)
+             VALUES (?, 'approved', TRUE)`,
+            [userId]
+          );
+        }
 
         console.log("✅ Counsellor profile ready and approved");
       }
@@ -104,6 +123,10 @@ async function seed() {
     console.log("Admin Account");
     console.log("Email: admin@carebridge.com");
     console.log("Password: admin123");
+    console.log("-----------------------------------------");
+    console.log("Counsellor Account");
+    console.log("Email: counsellor@carebridge.com");
+    console.log("Password: counsellor123");
     console.log("-----------------------------------------");
     console.log("Student Account");
     console.log("Email: student@carebridge.com");

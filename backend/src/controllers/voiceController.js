@@ -26,6 +26,7 @@ export const createVoiceSession = async (req, res) => {
   try {
     const liveSession = await createLiveEphemeralSession({
       conversationId: conversation.id,
+      recentHistory,
     });
 
     await recordAuditLog({
