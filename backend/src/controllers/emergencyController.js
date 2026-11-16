@@ -7,24 +7,24 @@ import crypto from "crypto";
 // --------------------------------------------------
 export const triggerEmergency = async (req, res) => {
     try {
-        const studentId = req.user?.id;
-        const studentName = req.user?.name;
-    // 1. Verify authentication
-    if (!req.user || !req.user.id) {
-        return res.status(401).json({
-            error: 'Authentication required to trigger an emergency alert.'
-        });
-    }
-
-    const studentId = req.user.id;
-    const { description, aiConfidence } = req.body ?? {};
-
-        if (!studentId) {
+        // 1. Verify authentication
+        if (!req.user || !req.user.id) {
             return res.status(401).json({
-                message: "User authentication required."
+                error: "Authentication required to trigger an emergency alert."
             });
         }
 
+        // 2. Get student information
+        const studentId = req.user.id;
+        const studentName = req.user.name || "Student";
+
+        // Read optional request information
+        const { description, aiConfidence } = req.body ?? {};
+
+        // Note: description and aiConfidence are not stored because
+        // the emergency_requests schema shared earlier has no such columns.
+
+        // 3. Get student email
         const [users] = await db.query(
             "SELECT email FROM users WHERE id = ?",
             [studentId]
@@ -38,16 +38,17 @@ export const triggerEmergency = async (req, res) => {
 
         const studentEmail = users[0].email;
 
-        // Generate one unique room ID for this request.
+        // 4. Generate one unique room ID for this emergency request
         const roomId = crypto.randomUUID();
 
+        // 5. Insert emergency request into database
         const [result] = await db.query(
             `INSERT INTO emergency_requests
                 (student_id, student_name, student_email, room_id, status)
              VALUES (?, ?, ?, ?, ?)`,
             [
                 studentId,
-                studentName || "Student",
+                studentName,
                 studentEmail,
                 roomId,
                 "Pending"
@@ -57,61 +58,30 @@ export const triggerEmergency = async (req, res) => {
         const emergencyRequest = {
             id: result.insertId,
             student_id: studentId,
-            student_name: studentName || "Student",
+            student_name: studentName,
             student_email: studentEmail,
             room_id: roomId,
             status: "Pending"
         };
 
-        // Notify connected clients that a new request is available.
+        // 6. Notify connected clients about the new request
         if (global.io) {
             global.io.emit("emergencyAlert", {
                 emergencyId: result.insertId,
                 studentId,
-                studentName: studentName || "Student",
+                studentName,
                 studentEmail,
-                roomId
+                roomId,
+                description: description || null,
+                aiConfidence: aiConfidence ?? null
             });
         }
 
+        // 7. Send response
         return res.status(201).json({
             success: true,
             message: "Emergency request created successfully.",
             request: emergencyRequest
-        });
-
-        // 5. Run notifications asynchronously in the background
-        setImmediate(async () => {
-            try {
-                // Broadcast real-time alert to counsellors
-                if (global.io) {
-                    global.io.to('counsellors-room').emit('emergencyAlert', {
-                        emergencyId,
-                        studentId,
-                        severityScore,
-                        fallbackTriggered,
-                        description: normalizedDescription,
-                        timestamp: new Date().toISOString()
-                    });
-                }
-
-                // Trigger redundant notifications
-                await dispatchRedundantNotifications({
-                    emergencyId,
-                    studentId,
-                    severityScore,
-                    fallbackTriggered,
-                    matchedKeywords,
-                    description: normalizedDescription ||
-                        'Immediate crisis assistance requested'
-                });
-
-            } catch (bgError) {
-                console.error(
-                    'Background emergency notification error:',
-                    bgError
-                );
-            }
         });
 
     } catch (error) {
@@ -154,7 +124,7 @@ export const acceptEmergencyRequest = async (req, res) => {
     try {
         const { id } = req.params;
 
-        // Get the existing request and its original room ID.
+        // 1. Get the existing emergency request
         const [rows] = await db.query(
             `SELECT *
              FROM emergency_requests
@@ -170,19 +140,21 @@ export const acceptEmergencyRequest = async (req, res) => {
 
         const request = rows[0];
 
+        // 2. Check request status
         if (request.status !== "Pending") {
             return res.status(409).json({
                 message: `This request is already ${request.status}.`
             });
         }
 
+        // 3. Check existing room ID
         if (!request.room_id) {
             return res.status(500).json({
                 message: "The emergency request has no room ID."
             });
         }
 
-        // Do not generate another room ID here.
+        // 4. Update status without generating a new room ID
         const [result] = await db.query(
             `UPDATE emergency_requests
              SET status = 'Accepted'
@@ -196,7 +168,7 @@ export const acceptEmergencyRequest = async (req, res) => {
             });
         }
 
-        // Notify the student using the SAME room ID.
+        // 5. Notify the student using the SAME room ID
         if (global.io) {
             global.io.emit("emergency-call", {
                 requestId: Number(id),
@@ -207,6 +179,7 @@ export const acceptEmergencyRequest = async (req, res) => {
             });
         }
 
+        // 6. Return the existing room ID to the counsellor
         return res.json({
             success: true,
             roomId: request.room_id,
@@ -269,7 +242,8 @@ export const cancelEmergencyRequest = async (req, res) => {
         const [result] = await db.query(
             `UPDATE emergency_requests
              SET status = 'Cancelled'
-             WHERE id = ? AND status IN ('Pending', 'Accepted')`,
+             WHERE id = ?
+             AND status IN ('Pending', 'Accepted')`,
             [id]
         );
 
