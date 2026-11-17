@@ -31,6 +31,8 @@ export const triggerEmergency = async (req, res) => {
     // Verify authentication
     if (!req.user || !req.user.id) {
         return res.status(401).json({
+            success: false,
+            message: 'Authentication required to trigger an emergency alert.',
             error: 'Authentication required to trigger an emergency alert.'
         });
     }
@@ -58,6 +60,8 @@ export const triggerEmergency = async (req, res) => {
 
         if (error instanceof ValidationError) {
             return res.status(400).json({
+                success: false,
+                message: error.message,
                 error: error.message
             });
         }
@@ -65,6 +69,8 @@ export const triggerEmergency = async (req, res) => {
         console.error('Unexpected error assessing emergency severity:', error);
 
         return res.status(500).json({
+            success: false,
+            message: 'Critical system error processing emergency request.',
             error: 'Critical system error processing emergency request.'
         });
     }
@@ -221,6 +227,8 @@ export const triggerEmergency = async (req, res) => {
 
         if (!res.headersSent) {
             return res.status(500).json({
+                success: false,
+                message: 'Critical system error processing emergency request.',
                 error: 'Critical system error processing emergency request.'
             });
         }

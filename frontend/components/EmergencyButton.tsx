@@ -18,6 +18,7 @@ interface EmergencyAcceptedData {
 interface EmergencyResponse {
     success: boolean;
     message?: string;
+    error?: string;
     emergencyId?: number;
 }
 
@@ -113,11 +114,15 @@ export default function EmergencyButton() {
                 }),
             });
 
-            const data: EmergencyResponse = await response.json();
+            const data: Partial<EmergencyResponse> = await response
+                .json()
+                .catch(() => ({}));
 
             if (!response.ok || !data.success || !data.emergencyId) {
                 throw new Error(
-                    data.message || "Failed to dispatch emergency call."
+                    data.error ||
+                        data.message ||
+                        "Failed to dispatch emergency call."
                 );
             }
 

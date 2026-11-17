@@ -125,6 +125,20 @@ export async function runMigrations() {
 
   await addColumnIfMissing("availability_slots", "status", "status VARCHAR(30) NOT NULL DEFAULT 'Available' AFTER is_booked");
 
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS emergencies (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      student_id INT NOT NULL,
+      severity_score VARCHAR(20) NOT NULL,
+      description TEXT NOT NULL,
+      ai_confidence DECIMAL(4,3) NULL,
+      fallback_triggered BOOLEAN NOT NULL DEFAULT FALSE,
+      status VARCHAR(50) NOT NULL DEFAULT 'Pending_Acknowledgment',
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (student_id) REFERENCES users(id)
+    ) ENGINE=InnoDB
+  `);
+
   await addColumnIfMissing("emergencies", "conversation_id", "conversation_id INT NULL AFTER student_id");
   await addColumnIfMissing("emergencies", "risk_level", "risk_level ENUM('low', 'moderate', 'high') NOT NULL DEFAULT 'high' AFTER severity_score");
   await addColumnIfMissing("emergencies", "acknowledged_by", "acknowledged_by INT NULL AFTER status");
@@ -134,6 +148,22 @@ export async function runMigrations() {
   await addColumnIfMissing("emergencies", "resolved_by", "resolved_by INT NULL AFTER escalation_level");
   await addColumnIfMissing("emergencies", "resolved_at", "resolved_at TIMESTAMP NULL AFTER resolved_by");
   await addColumnIfMissing("emergencies", "outcome_notes", "outcome_notes TEXT NULL AFTER resolved_at");
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS emergency_notifications (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      emergency_id INT NOT NULL,
+      channel ENUM('socket', 'email', 'sms') NOT NULL,
+      recipient VARCHAR(255) NOT NULL,
+      payload JSON NOT NULL,
+      status ENUM('PENDING', 'SENT', 'FAILED') DEFAULT 'PENDING',
+      attempts INT DEFAULT 0,
+      last_error TEXT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (emergency_id) REFERENCES emergencies(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB
+  `);
 
   await db.query(`
     CREATE TABLE IF NOT EXISTS phq9_screenings (
